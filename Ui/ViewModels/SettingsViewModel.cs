@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using YsfUtil.Ui.Theme;
@@ -28,20 +28,20 @@ internal sealed class SettingsViewModel : ViewModelBase
             }
             catch
             {
-                // Nicht schreibbar - der Haken zeigt unten wieder den echten Stand.
+                // Not writable - the checkbox shows the actual state below.
             }
             Set(ref autostart, Autostart.IsEnabled());
         }
     }
 
-    /// <summary>Wird beim Öffnen des Fensters neu gelesen - der Eintrag lässt sich auch im Tray-Menü ändern.</summary>
+    /// <summary>Re-read on opening - the entry can also be changed from the tray menu.</summary>
     public void Refresh()
     {
         autostart = Autostart.IsEnabled();
         Raise(nameof(AutostartEnabled));
     }
 
-    public IReadOnlyList<string> Themes { get; } = ["Wie Windows", "Hell", "Dunkel"];
+    public IReadOnlyList<string> Themes { get; } = ["System", "Light", "Dark"];
 
     public int ThemeIndex
     {

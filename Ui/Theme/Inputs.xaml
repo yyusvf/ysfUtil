@@ -1,70 +1,13 @@
-﻿<!--
-    Kontrollkästchen, Schieberegler und Bildlaufleiste. WPF bringt für keines davon eine
-    dunkle Fassung mit, also steht hier jeweils die komplette Vorlage.
+<!--
+    Checkbox, toggle switch, scrollbar, combo box, card and hotkey box. WPF has no dark version
+    of any of them, so each has its full template here.
 -->
 <ResourceDictionary
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:views="clr-namespace:YsfUtil.Ui.Views">
 
-    <!-- ══ Kontrollkästchen ════════════════════════════════════════════════════
-         Maße wie in Fluent: 20 Pixel Kasten, Haken als Glyphe aus der Symbolschrift.
-         Angehakt trägt er den Akzent, sonst nur einen Rand. -->
-    <Style x:Key="ThemedCheckBox" TargetType="CheckBox">
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="CheckBox">
-                    <Grid Background="Transparent">
-                        <Border x:Name="Box"
-                                Width="20" Height="20"
-                                CornerRadius="4"
-                                Background="{DynamicResource ControlBrush}"
-                                BorderBrush="{DynamicResource StrokeStrongBrush}"
-                                BorderThickness="1">
-                            <TextBlock x:Name="Check"
-                                       Text="&#xE73E;"
-                                       FontFamily="{StaticResource IconFont}"
-                                       FontSize="12"
-                                       Foreground="{DynamicResource OnAccentBrush}"
-                                       HorizontalAlignment="Center"
-                                       VerticalAlignment="Center"
-                                       Visibility="Collapsed" />
-                        </Border>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource AccentBrush}" />
-                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
-                        </Trigger>
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="IsMouseOver" Value="True" />
-                                <Condition Property="IsChecked" Value="False" />
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource ControlHoverBrush}" />
-                        </MultiTrigger>
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="IsMouseOver" Value="True" />
-                                <Condition Property="IsChecked" Value="True" />
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource AccentHoverBrush}" />
-                        </MultiTrigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource ControlDisabledBrush}" />
-                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource StrokeBrush}" />
-                            <Setter TargetName="Check" Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!-- Kontrollkästchen mit Beschriftung daneben - für die Einstellungen. -->
+    <!-- ══ Checkbox with label ═════════════════════════════════════════════════ -->
     <Style x:Key="LabeledCheckBox" TargetType="CheckBox">
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
@@ -111,87 +54,78 @@
         </Setter>
     </Style>
 
-    <!-- ══ Schieberegler ═══════════════════════════════════════════════════════
-         Dünne Spur, runder Griff, gefüllter Teil im Akzent. Der Griff wächst beim
-         Überfahren leicht - dieselbe Rückmeldung wie in den Windows-Reglern. -->
-    <Style x:Key="ThemedSlider" TargetType="Slider">
-        <Setter Property="Minimum" Value="0" />
-        <Setter Property="Maximum" Value="1" />
-        <Setter Property="IsMoveToPointEnabled" Value="True" />
+    <!-- ══ Toggle switch ═══════════════════════════════════════════════════════
+         Like Windows Settings: 40 x 20, the knob slides right and the track fills with the
+         accent. For "feature on/off", where a checkbox would read as "selected". -->
+    <Style x:Key="ToggleSwitch" TargetType="CheckBox">
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="Slider">
-                    <Grid Background="Transparent" Height="24">
-                        <Border Height="4"
-                                CornerRadius="2"
-                                VerticalAlignment="Center"
-                                Background="{DynamicResource StrokeStrongBrush}" />
-                        <Track x:Name="PART_Track">
-                            <!-- Der gefüllte Teil steckt in der linken Hälfte der Spur. Als
-                                 eigenes Element daneben hatte er keine Breite: die kennt nur
-                                 der Track, und der teilt sie seinen beiden Hälften zu. -->
-                            <Track.DecreaseRepeatButton>
-                                <RepeatButton Command="Slider.DecreaseLarge" Focusable="False">
-                                    <RepeatButton.Template>
-                                        <ControlTemplate TargetType="RepeatButton">
-                                            <Grid Background="Transparent">
-                                                <Border x:Name="Filled"
-                                                        Height="4"
-                                                        CornerRadius="2"
-                                                        VerticalAlignment="Center"
-                                                        Background="{DynamicResource AccentBrush}" />
-                                            </Grid>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsEnabled" Value="False">
-                                                    <Setter TargetName="Filled" Property="Background"
-                                                            Value="{DynamicResource TextDisabledBrush}" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </RepeatButton.Template>
-                                </RepeatButton>
-                            </Track.DecreaseRepeatButton>
-                            <Track.IncreaseRepeatButton>
-                                <RepeatButton Command="Slider.IncreaseLarge" Opacity="0" Focusable="False" />
-                            </Track.IncreaseRepeatButton>
-                            <Track.Thumb>
-                                <Thumb x:Name="Grip" Width="16" Height="16" Focusable="False">
-                                    <Thumb.Template>
-                                        <ControlTemplate TargetType="Thumb">
-                                            <Grid Background="Transparent">
-                                                <Ellipse Fill="{DynamicResource AccentBrush}" />
-                                                <Ellipse x:Name="Core"
-                                                         Fill="{DynamicResource TextPrimaryBrush}"
-                                                         Margin="4" />
-                                            </Grid>
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter TargetName="Core" Property="Margin" Value="3" />
-                                                </Trigger>
-                                                <Trigger Property="IsDragging" Value="True">
-                                                    <Setter TargetName="Core" Property="Margin" Value="5" />
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
-                                        </ControlTemplate>
-                                    </Thumb.Template>
-                                </Thumb>
-                            </Track.Thumb>
-                        </Track>
+                <ControlTemplate TargetType="CheckBox">
+                    <Grid Background="Transparent">
+                        <Border x:Name="Track"
+                                Width="40" Height="20"
+                                CornerRadius="10"
+                                Background="Transparent"
+                                BorderBrush="{DynamicResource TextTertiaryBrush}"
+                                BorderThickness="1" />
+                        <Ellipse x:Name="Knob"
+                                 Width="12" Height="12"
+                                 Margin="4,0,0,0"
+                                 HorizontalAlignment="Left"
+                                 Fill="{DynamicResource TextSecondaryBrush}">
+                            <Ellipse.RenderTransform>
+                                <TranslateTransform x:Name="Shift" X="0" />
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
                     </Grid>
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Grip" Property="Opacity" Value="0.4" />
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                            <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource OnAccentBrush}" />
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Shift"
+                                                         Storyboard.TargetProperty="X"
+                                                         To="20" Duration="0:0:0.12" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="Shift"
+                                                         Storyboard.TargetProperty="X"
+                                                         To="0" Duration="0:0:0.12" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
                         </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsChecked" Value="False" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource ControlHoverBrush}" />
+                        </MultiTrigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsMouseOver" Value="True" />
+                                <Condition Property="IsChecked" Value="True" />
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentHoverBrush}" />
+                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
+                        </MultiTrigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
     </Style>
 
-    <!-- ══ Bildlaufleiste ══════════════════════════════════════════════════════
-         Schmal und zurückhaltend, wie in WinUI: sichtbar, ohne Platz zu beanspruchen. -->
+    <!-- ══ Scrollbar ═══════════════════════════════════════════════════════════ -->
     <Style x:Key="ThemedScrollBar" TargetType="ScrollBar">
         <Setter Property="Width" Value="10" />
         <Setter Property="Background" Value="Transparent" />
@@ -251,11 +185,8 @@
         </Setter>
     </Style>
 
-    <!-- ══ Auswahlliste ════════════════════════════════════════════════════════
-         Zusammengesetzt aus Umschalttaste und Aufklappfenster, weil WPF für die
-         Auswahlliste keine andere Möglichkeit lässt. Das Aufklappfenster zeichnet sich
-         selbst - es liegt außerhalb des Fensters und erbt dessen Hintergrund nicht, also
-         bekommt es einen eigenen, deckenden Grund. -->
+    <!-- ══ Combo box ═══════════════════════════════════════════════════════════
+         The dropdown is its own popup outside the window, so it gets an opaque background. -->
     <Style x:Key="ComboItem" TargetType="ComboBoxItem">
         <Setter Property="Padding" Value="12,8" />
         <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
@@ -364,130 +295,15 @@
         </Setter>
     </Style>
 
-
-    <!-- ══ Auswahlknopf ════════════════════════════════════════════════════════ -->
-    <Style x:Key="ThemedRadioButton" TargetType="RadioButton">
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="Foreground" Value="{DynamicResource TextPrimaryBrush}" />
-        <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
-        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
-        <Setter Property="Margin" Value="0,0,0,8" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="RadioButton">
-                    <StackPanel Orientation="Horizontal" Background="Transparent">
-                        <Grid Width="20" Height="20" VerticalAlignment="Center">
-                            <Ellipse x:Name="Ring"
-                                     Fill="{DynamicResource ControlBrush}"
-                                     Stroke="{DynamicResource StrokeStrongBrush}"
-                                     StrokeThickness="1" />
-                            <Ellipse x:Name="Dot"
-                                     Margin="5"
-                                     Fill="{DynamicResource OnAccentBrush}"
-                                     Visibility="Collapsed" />
-                        </Grid>
-                        <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center" />
-                    </StackPanel>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Ring" Property="Fill" Value="{DynamicResource AccentBrush}" />
-                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource AccentBrush}" />
-                            <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
-                        </Trigger>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Ring" Property="Stroke" Value="{DynamicResource AccentBrush}" />
-                        </Trigger>
-                        <Trigger Property="IsEnabled" Value="False">
-                            <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!-- ══ Gruppe ══════════════════════════════════════════════════════════════
-         Ersetzt die GroupBox: eine Karte mit Überschrift darüber, wie in den
-         Windows-Einstellungen. -->
+    <!-- ══ Card ════════════════════════════════════════════════════════════════ -->
     <Style x:Key="SettingsCard" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource CardBrush}" />
         <Setter Property="CornerRadius" Value="{StaticResource RadiusCard}" />
         <Setter Property="Padding" Value="{StaticResource CardPadding}" />
     </Style>
 
-    <!-- ══ Kippschalter ════════════════════════════════════════════════════════
-         Wie in den Windows-Einstellungen: 40 x 20, Knopf wandert nach rechts und die
-         Spur füllt sich mit dem Akzent. Für "Funktion an/aus" - ein Kontrollkästchen
-         läse sich dort wie "ausgewählt". -->
-    <Style x:Key="ToggleSwitch" TargetType="CheckBox">
-        <Setter Property="Cursor" Value="Hand" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Template">
-            <Setter.Value>
-                <ControlTemplate TargetType="CheckBox">
-                    <Grid Background="Transparent">
-                        <Border x:Name="Track"
-                                Width="40" Height="20"
-                                CornerRadius="10"
-                                Background="Transparent"
-                                BorderBrush="{DynamicResource TextTertiaryBrush}"
-                                BorderThickness="1" />
-                        <Ellipse x:Name="Knob"
-                                 Width="12" Height="12"
-                                 Margin="4,0,0,0"
-                                 HorizontalAlignment="Left"
-                                 Fill="{DynamicResource TextSecondaryBrush}">
-                            <Ellipse.RenderTransform>
-                                <TranslateTransform x:Name="Shift" X="0" />
-                            </Ellipse.RenderTransform>
-                        </Ellipse>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentBrush}" />
-                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
-                            <Setter TargetName="Knob" Property="Fill" Value="{DynamicResource OnAccentBrush}" />
-                            <Trigger.EnterActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="Shift"
-                                                         Storyboard.TargetProperty="X"
-                                                         To="20" Duration="0:0:0.12" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </Trigger.EnterActions>
-                            <Trigger.ExitActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="Shift"
-                                                         Storyboard.TargetProperty="X"
-                                                         To="0" Duration="0:0:0.12" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </Trigger.ExitActions>
-                        </Trigger>
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="IsMouseOver" Value="True" />
-                                <Condition Property="IsChecked" Value="False" />
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource ControlHoverBrush}" />
-                        </MultiTrigger>
-                        <MultiTrigger>
-                            <MultiTrigger.Conditions>
-                                <Condition Property="IsMouseOver" Value="True" />
-                                <Condition Property="IsChecked" Value="True" />
-                            </MultiTrigger.Conditions>
-                            <Setter TargetName="Track" Property="Background" Value="{DynamicResource AccentHoverBrush}" />
-                            <Setter TargetName="Track" Property="BorderBrush" Value="{DynamicResource AccentHoverBrush}" />
-                        </MultiTrigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Setter.Value>
-        </Setter>
-    </Style>
-
-    <!-- Tastenkombination: sieht aus wie ein Eingabefeld und nimmt eine auf. -->
+    <!-- ══ Hotkey box ══════════════════════════════════════════════════════════
+         Looks like a text field and records a key combination. -->
     <Style TargetType="{x:Type views:HotkeyBox}">
         <Setter Property="Height" Value="32" />
         <Setter Property="MinWidth" Value="150" />
@@ -506,8 +322,6 @@
                             BorderThickness="1"
                             CornerRadius="{StaticResource RadiusControl}"
                             Padding="12,0">
-                        <!-- Links wie in einem Eingabefeld. Mittig sah der Inhalt verloren aus,
-                             seit das Feld die Breite seiner Karte einnimmt. -->
                         <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
                     </Border>
                     <ControlTemplate.Triggers>

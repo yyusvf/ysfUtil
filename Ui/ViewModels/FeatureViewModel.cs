@@ -1,12 +1,11 @@
-using YsfUtil.Features;
+﻿using YsfUtil.Features;
 using YsfUtil.Hotkeys;
 
 namespace YsfUtil.Ui.ViewModels;
 
 /// <summary>
-/// Eine Zeile der Funktionsliste. Änderungen gehen sofort in die Einstellungen; ob der
-/// Hotkey sich anmelden ließ, trägt der <see cref="AppController"/> über <see cref="HotkeyError"/>
-/// zurück.
+/// A feature card. Changes go straight into the settings; whether the hotkey could be
+/// registered is reported back by <see cref="AppController"/> via <see cref="HotkeyError"/>.
 /// </summary>
 internal sealed class FeatureViewModel : ViewModelBase
 {
@@ -22,10 +21,10 @@ internal sealed class FeatureViewModel : ViewModelBase
         RunCommand = new RelayCommand(() => Run?.Invoke(this));
     }
 
-    /// <summary>Etwas wurde geändert, das neu gespeichert und angemeldet werden muss.</summary>
+    /// <summary>Something changed that needs saving and re-registering.</summary>
     public event Action? Changed;
 
-    /// <summary>Die Funktion soll ausgeführt werden.</summary>
+    /// <summary>The feature should run.</summary>
     public event Action<FeatureViewModel>? Run;
 
     public IFeature Feature { get; }
@@ -81,7 +80,7 @@ internal sealed class FeatureViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Warum der Hotkey nicht greift, oder null.</summary>
+    /// <summary>Why the hotkey does not work, or null.</summary>
     public string? HotkeyError
     {
         get => hotkeyError;
@@ -97,7 +96,7 @@ internal sealed class FeatureViewModel : ViewModelBase
 
     public bool HasHotkeyError => hotkeyError != null;
 
-    /// <summary>Zweite Zeile: der Fehler, wenn es einen gibt, sonst der Zustand.</summary>
+    /// <summary>Second line: the error if any, otherwise the status.</summary>
     public string StatusLine => hotkeyError ?? status ?? Description;
 
     public void Refresh() => Status = Feature.Status;

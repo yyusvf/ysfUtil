@@ -4,13 +4,11 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
 
-    <!-- Oberflaeche in WPF, das Symbol im Infobereich ueber NotifyIcon aus WinForms -
-         dasselbe Muster wie in Audio Mirror. -->
+    <!-- UI in WPF, tray icon via the WinForms NotifyIcon. -->
     <UseWindowsForms>true</UseWindowsForms>
     <UseWPF>true</UseWPF>
 
-    <!-- Kein App.xaml: Program.Main bleibt der Einstiegspunkt, weil dort die Instanzsperre
-         und der stille Start haengen. -->
+    <!-- No App.xaml: Program.Main stays the entry point (single instance, quiet start). -->
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
 
     <Nullable>enable</Nullable>
@@ -21,8 +19,8 @@
     <ApplicationIcon>ysfUtil.ico</ApplicationIcon>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
 
-    <!-- Leichtgewichtig: nicht self-contained. Die .NET 8 Desktop Runtime muss installiert
-         sein, dafuer bleibt die exe unter einem Megabyte statt ueber 70. -->
+    <!-- Lightweight: framework-dependent. Needs the .NET 8 Desktop Runtime, but the exe stays
+         under a megabyte instead of 70+. -->
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
@@ -36,14 +34,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- WinForms und WPF benennen vieles gleich (Application, Brush, Color, ...). Wo WinForms
-         gebraucht wird, steht es ausdruecklich im Kopf der Datei. -->
+    <!-- WinForms and WPF share many type names (Application, Brush, Color, ...). Files that
+         need WinForms import it explicitly. -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Dasselbe Symbol wie die exe, zusaetzlich als WPF-Ressource fuer die Titelleiste. -->
+    <!-- Same icon as the exe, also as a WPF resource for the flyout header. -->
     <Resource Include="ysfUtil.ico" />
   </ItemGroup>
 

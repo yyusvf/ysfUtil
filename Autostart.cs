@@ -3,8 +3,8 @@ using Microsoft.Win32;
 namespace YsfUtil;
 
 /// <summary>
-/// "Mit Windows starten" über den Run-Schlüssel des Benutzers. Der Eintrag trägt
-/// <see cref="QuietArgument"/>, damit ysfUtil dann nur im Infobereich startet.
+/// "Start with Windows" via the user's Run key. The entry carries <see cref="QuietArgument"/> so
+/// ysfUtil starts silently in the notification area.
 /// </summary>
 internal static class Autostart
 {
@@ -39,10 +39,7 @@ internal static class Autostart
         }
     }
 
-    /// <summary>
-    /// Zieht einen bestehenden Eintrag auf den aktuellen Pfad nach - etwa nachdem die exe
-    /// verschoben wurde. Sonst zeigt der Autostart ins Leere.
-    /// </summary>
+    /// <summary>Points an existing entry at the current exe path, e.g. after the exe was moved.</summary>
     public static void Refresh()
     {
         if (IsEnabled())
@@ -53,7 +50,7 @@ internal static class Autostart
             }
             catch
             {
-                // Unkritisch.
+                // Not critical.
             }
         }
     }

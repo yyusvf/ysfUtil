@@ -1,4 +1,4 @@
-﻿using YsfUtil.Ui.Shell;
+using YsfUtil.Ui.Shell;
 
 namespace YsfUtil;
 
@@ -8,7 +8,7 @@ internal static class Program
     private static void Main(string[] args)
     {
 #if DEBUG
-        // Schreibt ysfUtil.ico neu aus der Zeichnung in AppIconArt.
+        // Rewrites ysfUtil.ico from the drawing in AppIconArt.
         int iconAt = Array.FindIndex(args, a => string.Equals(a, "--makeicon", StringComparison.OrdinalIgnoreCase));
         if (iconAt >= 0 && iconAt + 1 < args.Length)
         {
@@ -16,8 +16,8 @@ internal static class Program
             return;
         }
 
-        // Zeichnet das Fenster in eine PNG-Datei, ohne es auf den Bildschirm zu legen:
-        // --render <datei.png> [light|dark] [settings]
+        // Renders the flyout to a PNG without putting it on screen:
+        // --render <file.png> [light|dark] [settings]
         int renderAt = Array.FindIndex(args, a => string.Equals(a, "--render", StringComparison.OrdinalIgnoreCase));
         if (renderAt >= 0 && renderAt + 1 < args.Length)
         {
@@ -28,7 +28,7 @@ internal static class Program
 
         bool quiet = args.Any(a => string.Equals(a, Autostart.QuietArgument, StringComparison.OrdinalIgnoreCase));
 
-        // Läuft schon eine Instanz? Dann holt die ihr Fenster nach vorn, und diese hier geht.
+        // Already running? Then that instance opens its flyout and this one exits.
         if (!SingleInstance.TryAcquire())
         {
             if (!quiet)
@@ -43,7 +43,7 @@ internal static class Program
         application.DispatcherUnhandledException += (_, e) =>
         {
             System.Windows.MessageBox.Show(
-                "Unerwarteter Fehler: " + e.Exception.Message,
+                "Unexpected error: " + e.Exception.Message,
                 "ysfUtil",
                 System.Windows.MessageBoxButton.OK,
                 System.Windows.MessageBoxImage.Error);

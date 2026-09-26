@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
@@ -12,15 +12,15 @@ using WinFormsCursor = System.Windows.Forms.Cursor;
 namespace YsfUtil.Ui.Flyout;
 
 /// <summary>
-/// Das Panel am Infobereich. Es ist die einzige Oberfläche von ysfUtil: kein Eintrag in der
-/// Taskleiste, keiner in Alt+Tab, und es verschwindet, sobald woanders hingeklickt wird.
+/// The panel above the tray icon and ysfUtil's only UI: no taskbar entry, no Alt+Tab entry,
+/// and it disappears as soon as you click elsewhere.
 /// </summary>
 public partial class FlyoutWindow : Window
 {
     /// <summary>
-    /// Zeitfenster nach dem Ausblenden, in dem ein Klick aufs Tray-Symbol nicht wieder öffnet.
-    /// Der Klick aufs Symbol nimmt dem Flyout zuerst den Fokus (es schließt sich), und erst danach
-    /// kommt er beim Symbol an - ohne diese Sperre ginge es sofort wieder auf.
+    /// After hiding, a click on the tray icon does not reopen within this time. Clicking the icon
+    /// first takes focus from the flyout (which closes it) and only then reaches the icon -
+    /// without this guard it would open again right away.
     /// </summary>
     private static readonly TimeSpan ReopenGuard = TimeSpan.FromMilliseconds(300);
 
@@ -29,23 +29,21 @@ public partial class FlyoutWindow : Window
     private DateTime hiddenAt = DateTime.MinValue;
 
     /// <summary>
-    /// Worüber das Flyout beim letzten Öffnen gesetzt wurde (siehe <see cref="TrayAnchor"/>).
-    /// Festgehalten statt bei jeder Größenänderung neu bestimmt: klappt der Überlauf später zu,
-    /// soll das Flyout nicht hinterherspringen.
+    /// What the flyout was placed above when last opened (see <see cref="TrayAnchor"/>). Kept
+    /// rather than recomputed on resize, so the flyout doesn't jump when the overflow closes.
     /// </summary>
     private System.Drawing.Rectangle? anchor;
 
     /// <summary>
-    /// Solange das Flyout offen, aber nicht aktiv ist, meldet Windows kein Deactivated - ein
-    /// Klick woanders hin würde es also nicht schließen. Dafür schaut dieser Takt nach, wer
-    /// gerade vorn ist.
+    /// While the flyout is open but not active, Windows sends no Deactivated, so a click
+    /// elsewhere wouldn't close it. This timer checks which window is in front instead.
     /// </summary>
     private readonly System.Windows.Threading.DispatcherTimer outsideWatch =
         new() { Interval = TimeSpan.FromMilliseconds(120) };
 
     /// <summary>
-    /// Was beim Öffnen vorn war: der Überlauf oder die Taskleiste. Wechselt der Fokus von dort
-    /// weg - woandershin geklickt, Überlauf zugeklappt -, geht das Flyout mit zu.
+    /// The window in front when opening: the overflow or the taskbar. Once focus moves away from
+    /// it - click elsewhere, overflow closed - the flyout closes too.
     /// </summary>
     private IntPtr openedFrom;
 
@@ -74,7 +72,7 @@ public partial class FlyoutWindow : Window
             }
         };
 
-        // Win+Pfeil hoch würde auch ein Flyout maximieren.
+        // Win+Up would maximize a flyout too.
         StateChanged += (_, _) =>
         {
             if (WindowState != WindowState.Normal)
@@ -84,12 +82,12 @@ public partial class FlyoutWindow : Window
         };
     }
 
-    /// <summary>Kurz vor dem Einblenden - der Zustand der Funktionen wird dann frisch gelesen.</summary>
+    /// <summary>Right before showing - feature state is re-read then.</summary>
     internal event Action? Opening;
 
     internal event Action? ExitRequested;
 
-    /// <summary>Für Linksklick aufs Tray-Symbol: auf, wenn zu - und umgekehrt.</summary>
+    /// <summary>For a left click on the tray icon: open if closed, and vice versa.</summary>
     public void Toggle(System.Drawing.Rectangle? trayAnchor)
     {
         if (IsVisible)
@@ -103,11 +101,11 @@ public partial class FlyoutWindow : Window
     }
 
     /// <summary>
-    /// Zeigt das Flyout über <paramref name="trayAnchor"/>.
+    /// Shows the flyout above <paramref name="trayAnchor"/>.
     ///
-    /// Vom Tray-Symbol aus ohne Fokus, wie Razer Synapse: nähme das Flyout sofort den Fokus,
-    /// klappte Windows den Überlauf zu, und das Flyout stünde über einer leeren Stelle. Aktiv
-    /// wird es mit dem ersten Klick hinein.
+    /// From the tray icon without taking focus, like Razer Synapse: taking focus would make
+    /// Windows close the overflow, leaving the flyout above an empty spot. It becomes active
+    /// with the first click into it.
     /// </summary>
     public void ShowFlyout(System.Drawing.Rectangle? trayAnchor, bool settings = false, bool activate = false)
     {
@@ -152,10 +150,7 @@ public partial class FlyoutWindow : Window
         Hide();
     }
 
-    /// <summary>
-    /// Offen, aber nicht aktiv: zu, sobald weder das Fenster vorn ist, aus dem heraus geöffnet
-    /// wurde, noch das Flyout selbst.
-    /// </summary>
+    /// <summary>Open but inactive: close once neither the opening window nor the flyout is in front.</summary>
     private void CloseIfClickedOutside()
     {
         if (IsActive)
@@ -171,14 +166,14 @@ public partial class FlyoutWindow : Window
         }
     }
 
-    /// <summary>Für die Vorschau: gleich die Einstellungen zeigen.</summary>
+    /// <summary>For the preview: show the settings view.</summary>
     public void ShowSettingsView() => SwitchView(true);
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
         base.OnPreviewKeyDown(e);
 
-        // Nimmt ein Hotkey-Feld gerade auf, hat es die Taste schon als erledigt markiert.
+        // A recording hotkey box has already marked the key as handled.
         if (!e.Handled && e.Key == Key.Escape)
         {
             if (SettingsView.Visibility == Visibility.Visible)
@@ -200,7 +195,7 @@ public partial class FlyoutWindow : Window
         BackButton.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
         Logo.Visibility = settings ? Visibility.Collapsed : Visibility.Visible;
         SettingsButton.Visibility = settings ? Visibility.Collapsed : Visibility.Visible;
-        HeaderText.Text = settings ? "Einstellungen" : "ysfUtil";
+        HeaderText.Text = settings ? "Settings" : "ysfUtil";
     }
 
     private void OnSettings(object sender, RoutedEventArgs e) => SwitchView(true);
@@ -212,14 +207,13 @@ public partial class FlyoutWindow : Window
     private void ApplyWindowEffects() => WindowEffects.Apply(this, ThemeManager.IsDark);
 
     /// <summary>
-    /// Setzt das Flyout über das Tray-Symbol, mittig ausgerichtet und auf den Bildschirm
-    /// begrenzt - bei seitlicher oder oberer Taskleiste entsprechend daneben oder darunter.
-    /// Ohne bekannte Lage des Symbols (etwa beim Öffnen über einen zweiten Start) geht es in
-    /// die Ecke an der Taskleiste.
+    /// Places the flyout above the tray icon, centred and kept on screen - beside or below it for
+    /// a side or top taskbar. Without a known icon position (e.g. opened by a second start) it
+    /// goes to the corner at the taskbar.
     ///
-    /// Gerechnet wird in Bildschirmpixeln, weil Bildschirme mit unterschiedlicher Skalierung
-    /// sonst verschiedene Maßstäbe hätten - und mit dem sichtbaren Umriss, nicht mit dem
-    /// Fensterrechteck: das schließt den unsichtbaren Rand ein, den der Rahmen mitbringt.
+    /// Works in screen pixels, since monitors with different scaling would otherwise disagree,
+    /// and with the visible outline rather than the window rect, which includes the frame's
+    /// invisible border.
     /// </summary>
     private void PlaceAtTray()
     {
@@ -259,19 +253,18 @@ public partial class FlyoutWindow : Window
             y = edge == TaskbarEdge.Top ? screen.Top + margin : screen.Bottom - height - margin;
         }
 
-        // Nie über den Bildschirmrand hinaus - ein Symbol ganz rechts würde das Flyout sonst
-        // zur Hälfte hinausschieben.
+        // Never past the screen edge - an icon at the far right would push it half off screen.
         x = Math.Clamp(x, screen.Left + margin, Math.Max(screen.Left + margin, screen.Right - width - margin));
         y = Math.Clamp(y, screen.Top + margin, Math.Max(screen.Top + margin, screen.Bottom - height - margin));
 
-        // Zurück vom sichtbaren Umriss aufs Fensterrechteck.
+        // Back from the visible outline to the window rect.
         x -= visible.Left - outer.Left;
         y -= visible.Top - outer.Top;
 
         SetWindowPos(handle, IntPtr.Zero, x, y, 0, 0, SwpNoSize | SwpNoZOrder | SwpNoActivate);
     }
 
-    /// <summary>Kein Eintrag in Alt+Tab - ein Flyout ist kein Fenster, zu dem man wechselt.</summary>
+    /// <summary>No Alt+Tab entry - a flyout isn't a window you switch to.</summary>
     private void HideFromAltTab()
     {
         IntPtr handle = new WindowInteropHelper(this).Handle;
@@ -301,6 +294,7 @@ public partial class FlyoutWindow : Window
     private const uint SwpNoSize = 0x1;
     private const uint SwpNoZOrder = 0x4;
     private const uint SwpNoActivate = 0x10;
+    private const int DwmExtendedFrameBounds = 9;
 
     [StructLayout(LayoutKind.Sequential)]
     private struct Rect32
@@ -319,15 +313,11 @@ public partial class FlyoutWindow : Window
         public IntPtr lParam;
     }
 
-    private const int DwmExtendedFrameBounds = 9;
-
-
     [DllImport("shell32.dll")]
     private static extern UIntPtr SHAppBarMessage(uint message, ref AppBarData data);
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
-
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmGetWindowAttribute(IntPtr hWnd, int attribute, out Rect32 value, int size);

@@ -10,9 +10,9 @@ using ToolTipIcon = System.Windows.Forms.ToolTipIcon;
 namespace YsfUtil;
 
 /// <summary>
-/// Hält alles zusammen: Einstellungen, Hotkeys, Infobereich und Flyout. ysfUtil lebt im
-/// Infobereich; ein eigenes Fenster gibt es nicht. Das Flyout entsteht erst beim ersten Öffnen -
-/// wer ysfUtil nur über Hotkeys nutzt, lädt die Oberfläche nie.
+/// Ties everything together: settings, hotkeys, tray icon and flyout. ysfUtil lives in the
+/// notification area and has no window of its own. The flyout is only created on first use,
+/// so hotkey-only use never loads the UI.
 /// </summary>
 internal sealed class AppController : IDisposable
 {
@@ -45,12 +45,12 @@ internal sealed class AppController : IDisposable
         tray.AutostartToggled += () => settingsModel.AutostartEnabled = !Autostart.IsEnabled();
         tray.ExitRequested += Exit;
 
-        // Ein zweiter Start von Hand öffnet das Flyout der laufenden Instanz.
+        // Starting the exe again opens the flyout of the running instance.
         hotkeys.ShowWindowRequested += () =>
             Flyout().ShowFlyout(TrayAnchor.Resolve(tray.GetIconBounds()), activate: true);
 
-        // Während ein Hotkey-Feld aufnimmt, ruhen die angemeldeten Kombinationen - sonst
-        // fängt Windows sie ab, bevor das Feld sie sieht.
+        // While a hotkey box is recording, registered hotkeys are paused - otherwise Windows
+        // would swallow the combination before the box sees it.
         HotkeyBox.RecordingChanged += recording =>
         {
             if (recording)
@@ -72,13 +72,13 @@ internal sealed class AppController : IDisposable
             settings.Save();
         }
 
-        // Von Hand gestartet: kurz zeigen, wo ysfUtil jetzt wohnt. Beim ersten Mal ausführlich,
-        // weil Windows neue Symbole gern im Überlauf (^) versteckt.
+        // Started by hand: briefly point out where ysfUtil lives. On first run with a tip,
+        // since Windows likes to hide new icons in the overflow (^).
         if (!startQuietly)
         {
             FeatureViewModel? first = features.FirstOrDefault(f => f.IsEnabled && f.Hotkey != null);
-            tray.ShowHint("ysfUtil läuft im Infobereich",
-                (firstRun ? "Klick aufs Symbol öffnet ysfUtil. Tipp: Symbol aus dem Überlauf (^) auf die Taskleiste ziehen.\n" : "")
+            tray.ShowHint("ysfUtil is running in the notification area",
+                (firstRun ? "Click the icon to open ysfUtil. Tip: drag it from the overflow (^) onto the taskbar.\n" : "")
                 + (first != null ? $"{first.Hotkey!.Describe()}: {first.Name}" : ""));
         }
     }
@@ -90,7 +90,7 @@ internal sealed class AppController : IDisposable
             flyout = new FlyoutWindow(features, settingsModel);
             flyout.ExitRequested += Exit;
 
-            // Der Zustand kann sich außerhalb geändert haben, etwa in den Windows-Einstellungen.
+            // State may have changed elsewhere, e.g. in the Windows settings.
             flyout.Opening += () =>
             {
                 features.ForEach(f => f.Refresh());
@@ -121,7 +121,7 @@ internal sealed class AppController : IDisposable
 
             if (taken.TryGetValue(hotkey, out FeatureViewModel? other))
             {
-                feature.HotkeyError = $"{hotkey.Describe()} ist schon für „{other.Name}“ vergeben";
+                feature.HotkeyError = $"{hotkey.Describe()} is already used by “{other.Name}”";
                 continue;
             }
 
@@ -132,7 +132,7 @@ internal sealed class AppController : IDisposable
             }
             else
             {
-                feature.HotkeyError = $"{hotkey.Describe()} wird schon von einem anderen Programm verwendet";
+                feature.HotkeyError = $"{hotkey.Describe()} is already used by another app";
             }
         }
     }

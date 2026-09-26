@@ -4,12 +4,10 @@ using System.Drawing.Drawing2D;
 namespace YsfUtil.Ui;
 
 /// <summary>
-/// Das Erscheinungsbild des Programms an einer Stelle: vier Kacheln im Raster, die rechte
-/// obere auf die Spitze gestellt - ein Werkzeugkasten aus kleinen Einzelteilen. Im Indigo der
-/// App-Familie (wie Audio Mirror), ohne Hintergrund und ohne Verlauf.
+/// The app icon in one place: four tiles in a grid, the top-right one turned into a diamond -
+/// a toolbox of small parts. Indigo like Audio Mirror, no background, no gradient.
 ///
-/// Infobereich, Taskleiste, Fenster und Titelleiste kommen alle hierher; ysfUtil.ico ist nur
-/// das Abbild davon (siehe <see cref="AppIconFile"/>).
+/// Tray, taskbar and flyout all use this; ysfUtil.ico is just its image (see <see cref="AppIconFile"/>).
 /// </summary>
 internal static class AppIconArt
 {
@@ -20,10 +18,7 @@ internal static class AppIconArt
     private const float Gap = 3f;
     private const float Radius = 3.2f;
 
-    /// <summary>
-    /// Vierfach vergrößert gezeichnet und dann verkleinert - bei 16 Pixeln wären die Fugen
-    /// sonst nur ein grauer Schleier.
-    /// </summary>
+    /// <summary>Drawn at 4x and scaled down - at 16 px the gaps would otherwise blur.</summary>
     public static Bitmap Render(int size)
     {
         const int oversample = 4;
@@ -58,8 +53,8 @@ internal static class AppIconArt
         FillRounded(g, brush, start, second, tile, radius);
         FillRounded(g, brush, second, second, tile, radius);
 
-        // Die Raute: dieselbe Kachel, um 45 Grad gedreht und etwas kleiner, damit ihre Spitzen
-        // nicht über das Raster hinausragen.
+        // The diamond: the same tile rotated 45 degrees and slightly smaller so its tips stay
+        // inside the grid.
         GraphicsState state = g.Save();
         float centre = second + tile / 2;
         g.TranslateTransform(centre, start + tile / 2);

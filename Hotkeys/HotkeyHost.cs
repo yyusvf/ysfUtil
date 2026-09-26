@@ -4,11 +4,8 @@ using System.Windows.Forms;
 namespace YsfUtil.Hotkeys;
 
 /// <summary>
-/// Unsichtbares Fenster, bei dem alle systemweiten Hotkeys angemeldet sind. Empfängt außerdem
-/// die Nachricht einer zweiten Instanz, das Fenster zu zeigen.
-///
-/// Bewusst ein eigenes Fenster und nicht das Hauptfenster: das entsteht erst beim ersten Öffnen,
-/// die Hotkeys sollen aber vom Start an wirken.
+/// Invisible window all global hotkeys are registered with. Also receives a second instance's
+/// request to open the flyout. Separate from the flyout so hotkeys work from startup on.
 /// </summary>
 internal sealed class HotkeyHost : NativeWindow, IDisposable
 {
@@ -25,7 +22,7 @@ internal sealed class HotkeyHost : NativeWindow, IDisposable
 
     public event Action? ShowWindowRequested;
 
-    /// <summary>Meldet die Kombination an. False, wenn ein anderes Programm sie schon belegt.</summary>
+    /// <summary>Registers the combination. False if another app already owns it.</summary>
     public bool Register(Hotkey hotkey, Action action)
     {
         int id = nextId++;

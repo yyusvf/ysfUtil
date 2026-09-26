@@ -5,31 +5,26 @@ using DrawingColor = System.Drawing.Color;
 namespace YsfUtil.Ui.Theme;
 
 /// <summary>
-/// Die Farben des gerade eingebundenen Farbsatzes, für den Teil des Programms, der nicht in
-/// WPF gezeichnet wird - das Menü im Infobereich ist weiterhin ein WinForms-Menü.
+/// Colours of the loaded palette for the part not drawn in WPF - the tray menu is WinForms.
 ///
-/// Bewusst keine zweite Farbtabelle: die Werte werden bei jedem Zugriff aus den geladenen
-/// Ressourcen gelesen. Eine Kopie hier wäre genau die verstreute Farbe, die vermieden werden
-/// soll - und ein Wechsel zwischen hell und dunkel käme hier nie an.
+/// No second colour table on purpose: values are read from the loaded resources on every
+/// access, so a light/dark switch arrives here too.
 /// </summary>
 internal static class Palette
 {
     public static DrawingColor Window => Get("WindowBrush");
-    public static DrawingColor Surface => Get("SurfaceBrush");
     public static DrawingColor Card => Get("CardBrush");
-    public static DrawingColor Control => Get("ControlBrush");
     public static DrawingColor ControlHover => Get("ControlHoverBrush");
     public static DrawingColor Stroke => Get("StrokeBrush");
     public static DrawingColor Divider => Get("DividerBrush");
     public static DrawingColor Text => Get("TextPrimaryBrush");
-    public static DrawingColor TextSecondary => Get("TextSecondaryBrush");
     public static DrawingColor TextDisabled => Get("TextDisabledBrush");
     public static DrawingColor Accent => Get("AccentBrush");
     public static DrawingColor OnAccent => Get("OnAccentBrush");
 
     /// <summary>
-    /// Deckende Fassung des flächigen Akzents. WinForms kennt keine Durchsicht zwischen
-    /// Steuerelementen, darum wird der Wert einmal gegen den Fensterton verrechnet.
+    /// Opaque version of the soft accent. WinForms has no transparency between controls, so the
+    /// value is blended against the window colour once.
     /// </summary>
     public static DrawingColor AccentSoft => Flatten(Brush("AccentSoftBrush"), Window);
 
@@ -37,8 +32,8 @@ internal static class Palette
 
     private static Color Brush(string key)
     {
-        // Vor dem ersten Fenster steht noch keine Anwendung - dann bleibt es bei Schwarz,
-        // was nie sichtbar wird, weil das Menü erst danach entsteht.
+        // Before the WPF application exists this stays black - never visible, since the menu
+        // is only built afterwards.
         if (Application.Current?.TryFindResource(key) is SolidColorBrush brush)
         {
             return brush.Color;
@@ -48,7 +43,7 @@ internal static class Palette
 
     private static DrawingColor ToDrawing(Color c) => DrawingColor.FromArgb(c.A, c.R, c.G, c.B);
 
-    /// <summary>Legt eine teildeckende Farbe auf einen Grund und gibt das Ergebnis deckend zurück.</summary>
+    /// <summary>Lays a translucent colour over a background and returns the opaque result.</summary>
     private static DrawingColor Flatten(Color front, DrawingColor back)
     {
         float a = front.A / 255f;

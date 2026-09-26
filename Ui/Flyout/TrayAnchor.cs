@@ -5,12 +5,10 @@ using System.Text;
 namespace YsfUtil.Ui.Flyout;
 
 /// <summary>
-/// Worüber das Flyout stehen soll: das Tray-Symbol - oder, wenn es im aufgeklappten Überlauf
-/// (^) steckt, das ganze Überlauf-Fenster. So legt sich das Flyout darüber, statt den Überlauf
-/// zu verdecken, wie bei Razer Synapse.
+/// What the flyout should sit above: the tray icon - or, if it is in the open overflow (^), the
+/// whole overflow window, so the flyout sits on top of it like Razer Synapse does.
 ///
-/// Muss bestimmt werden, solange der Überlauf noch offen ist - also beim Drücken der Maustaste,
-/// nicht erst beim Loslassen.
+/// Must be resolved while the overflow is still open, i.e. on mouse down rather than mouse up.
 /// </summary>
 internal static class TrayAnchor
 {
@@ -32,14 +30,11 @@ internal static class TrayAnchor
         return r;
     }
 
-    private static bool IsTaskbar(IntPtr window) =>
-        ClassOf(window) is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
-
-    private static string ClassOf(IntPtr window)
+    private static bool IsTaskbar(IntPtr window)
     {
         var name = new StringBuilder(128);
         GetClassName(window, name, name.Capacity);
-        return name.ToString();
+        return name.ToString() is "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
     }
 
     [StructLayout(LayoutKind.Sequential)]

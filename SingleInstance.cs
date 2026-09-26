@@ -3,8 +3,8 @@ using System.Runtime.InteropServices;
 namespace YsfUtil;
 
 /// <summary>
-/// Sorgt dafür, dass immer nur ein ysfUtil läuft. Ein zweiter Start meldet sich beim ersten
-/// und beendet sich; der erste holt daraufhin sein Fenster nach vorn.
+/// Ensures only one ysfUtil runs. A second start notifies the first one, which then opens its
+/// flyout, and exits.
 /// </summary>
 internal static class SingleInstance
 {
@@ -13,7 +13,7 @@ internal static class SingleInstance
 
     private static Mutex? mutex;
 
-    /// <summary>Fensternachricht, mit der eine zweite Instanz das Fenster anfordert.</summary>
+    /// <summary>Window message a second instance sends to request the flyout.</summary>
     public static uint ShowWindowMessage { get; } = RegisterWindowMessage("ysfUtil.ShowWindow");
 
     public static bool TryAcquire()
@@ -45,7 +45,7 @@ internal static class SingleInstance
         }
         catch
         {
-            // Beim Beenden unkritisch.
+            // Not critical on exit.
         }
         mutex?.Dispose();
         mutex = null;

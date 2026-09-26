@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
@@ -8,8 +8,8 @@ using YsfUtil.Ui.ViewModels;
 namespace YsfUtil.Ui;
 
 /// <summary>
-/// Symbol im Infobereich. Linksklick klappt das Flyout auf und zu, Rechtsklick öffnet das Menü
-/// mit allen eingeschalteten Funktionen - im selben Farbsatz wie das Flyout.
+/// The notification area icon. Left click toggles the flyout, right click opens a menu with all
+/// enabled features - themed like the flyout.
 /// </summary>
 internal sealed class TrayController : IDisposable
 {
@@ -22,6 +22,7 @@ internal sealed class TrayController : IDisposable
     private readonly Icon icon;
     private readonly IntPtr iconHandle;
     private readonly IReadOnlyList<FeatureViewModel> features;
+    private Rectangle? pressAnchor;
 
     public TrayController(IReadOnlyList<FeatureViewModel> features)
     {
@@ -33,7 +34,7 @@ internal sealed class TrayController : IDisposable
             icon = Icon.FromHandle(iconHandle);
         }
 
-        // Eigener Renderer, sonst wäre das Menü immer hell. Siehe ThemedMenuRenderer.
+        // Own renderer, otherwise the menu would always be light. See ThemedMenuRenderer.
         menu.RenderMode = ToolStripRenderMode.Professional;
         menu.Renderer = new ThemedMenuRenderer();
 
@@ -45,11 +46,11 @@ internal sealed class TrayController : IDisposable
             ContextMenuStrip = menu,
         };
 
-        // Aufbauen beim Drücken der rechten Taste, also bevor NotifyIcon das Menü zeigt. Im
-        // Opening-Ereignis verwirft Windows ein frisch umgebautes Menü beim ersten Klick.
+        // The menu is rebuilt on right mouse down, before NotifyIcon shows it. Rebuilding in
+        // Opening makes Windows discard the menu on the first click.
         //
-        // Beim Drücken der linken Taste wird festgehalten, wo das Symbol steht: jetzt ist ein
-        // aufgeklappter Überlauf noch offen, beim Loslassen womöglich schon nicht mehr.
+        // On left mouse down the icon position is captured: an open overflow is still open now,
+        // but may already be closed on mouse up.
         notifyIcon.MouseDown += (_, e) =>
         {
             if (e.Button == MouseButtons.Right)
@@ -71,12 +72,10 @@ internal sealed class TrayController : IDisposable
         };
     }
 
-    private Rectangle? pressAnchor;
-
-    /// <summary>Linksklick: Flyout auf oder zu - mit der Stelle, über der es stehen soll.</summary>
+    /// <summary>Left click: toggle the flyout, with the spot it should sit above.</summary>
     public event Action<Rectangle?>? FlyoutToggleRequested;
 
-    /// <summary>Aus dem Menü: Flyout öffnen, auf Wunsch gleich mit den Einstellungen.</summary>
+    /// <summary>From the menu: open the flyout, optionally on the settings view.</summary>
     public event Action<bool>? FlyoutRequested;
 
     public event Action<FeatureViewModel>? RunRequested;
@@ -86,19 +85,16 @@ internal sealed class TrayController : IDisposable
     public event Action? ExitRequested;
 
     /// <summary>
-    /// Wo das Symbol gerade auf dem Bildschirm steht, in Bildschirmpixeln - auf der Taskleiste
-    /// oder im aufgeklappten Überlauf (^). Null, wenn Windows es nicht verrät, etwa weil das
-    /// Symbol im zugeklappten Überlauf steckt.
+    /// Where the icon currently is, in screen pixels - on the taskbar or in the open overflow (^).
+    /// Null if Windows doesn't say, e.g. while the icon sits in the closed overflow.
     ///
-    /// NotifyIcon gibt Fenster und Kennung, unter denen es bei Windows angemeldet ist, nicht
-    /// heraus; beides steht in privaten Feldern (in .NET 8 mit Unterstrich, früher ohne).
+    /// NotifyIcon doesn't expose the window and id it registered with; both are private fields.
+    /// Looked up by type rather than name, since names and the id type vary between versions.
     /// </summary>
     public Rectangle? GetIconBounds()
     {
         try
         {
-            // Nach Typ statt nach Namen gesucht: die Felder heißen je nach Fassung anders, und
-            // die Kennung war mal int, mal uint.
             FieldInfo[] fields = typeof(NotifyIcon).GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
             NativeWindow? native = fields
                 .Where(f => typeof(NativeWindow).IsAssignableFrom(f.FieldType))
@@ -129,24 +125,6 @@ internal sealed class TrayController : IDisposable
             return null;
         }
     }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NotifyIconIdentifier
-    {
-        public int cbSize;
-        public IntPtr hWnd;
-        public uint uID;
-        public Guid guidItem;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct IconRect
-    {
-        public int Left, Top, Right, Bottom;
-    }
-
-    [DllImport("shell32.dll")]
-    private static extern int Shell_NotifyIconGetRect(ref NotifyIconIdentifier identifier, out IconRect location);
 
     public void ShowHint(string title, string message, ToolTipIcon kind = ToolTipIcon.Info)
     {
@@ -189,24 +167,24 @@ internal sealed class TrayController : IDisposable
             menu.Items.Add(new ToolStripSeparator());
         }
 
-        var open = new ToolStripMenuItem("ysfUtil öffnen") { Font = new Font(menu.Font, FontStyle.Bold) };
+        var open = new ToolStripMenuItem("Open ysfUtil") { Font = new Font(menu.Font, FontStyle.Bold) };
         open.Click += (_, _) => FlyoutRequested?.Invoke(false);
         menu.Items.Add(Style(open));
 
-        var settings = new ToolStripMenuItem("Einstellungen");
+        var settings = new ToolStripMenuItem("Settings");
         settings.Click += (_, _) => FlyoutRequested?.Invoke(true);
         menu.Items.Add(Style(settings));
 
-        var autostart = new ToolStripMenuItem("Mit Windows starten") { Checked = Autostart.IsEnabled() };
+        var autostart = new ToolStripMenuItem("Start with Windows") { Checked = Autostart.IsEnabled() };
         autostart.Click += (_, _) => AutostartToggled?.Invoke();
         menu.Items.Add(Style(autostart));
 
-        var exit = new ToolStripMenuItem("Beenden");
+        var exit = new ToolStripMenuItem("Quit");
         exit.Click += (_, _) => ExitRequested?.Invoke();
         menu.Items.Add(Style(exit));
     }
 
-    /// <summary>Textfarbe je Eintrag - abgeschaltete nähmen sonst das Systemgrau, im Dunklen kaum lesbar.</summary>
+    /// <summary>Text colour per item - disabled items would otherwise use the system grey, barely readable on dark.</summary>
     private static ToolStripMenuItem Style(ToolStripMenuItem item)
     {
         item.BackColor = Palette.Window;
@@ -216,11 +194,29 @@ internal sealed class TrayController : IDisposable
 
     public void Dispose()
     {
-        // Ohne ausdrückliches Ausblenden bleibt das Symbol stehen, bis jemand darüberfährt.
+        // Without hiding explicitly, the icon lingers until the mouse passes over it.
         notifyIcon.Visible = false;
         notifyIcon.Dispose();
         menu.Dispose();
         icon.Dispose();
         DestroyIcon(iconHandle);
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NotifyIconIdentifier
+    {
+        public int cbSize;
+        public IntPtr hWnd;
+        public uint uID;
+        public Guid guidItem;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct IconRect
+    {
+        public int Left, Top, Right, Bottom;
+    }
+
+    [DllImport("shell32.dll")]
+    private static extern int Shell_NotifyIconGetRect(ref NotifyIconIdentifier identifier, out IconRect location);
 }

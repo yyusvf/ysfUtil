@@ -1,36 +1,25 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
-using System.Windows.Media;
 
 namespace YsfUtil.Ui.Shell;
 
 /// <summary>
-/// Titelleiste in der Farbe des Farbsatzes und runde Ecken - beides stellt der
-/// Fenstermanager, nicht WPF. WPF kennt
-/// dafür keine Eigenschaften, also führt der Weg über <c>DwmSetWindowAttribute</c>.
-///
-/// Beide Angaben sind ab einer bestimmten Windows-Fassung vorhanden, und ältere antworten
-/// schlicht mit einem Fehlercode, statt zu stürzen. Ein Rückfall ist deshalb nicht nötig: die
-/// Farben des Fensters stehen ohnehin fest, betroffen wären nur Rahmen und Ecken.
-///
-/// Mica wird bewusst nicht gesetzt. Der Hintergrund des Fensters ist deckend, ein
-/// durchscheinender Untergrund wäre davon vollständig verdeckt.
+/// Dark frame and rounded corners via DwmSetWindowAttribute - WPF has no properties for either.
+/// Older Windows versions just return an error code, so no fallback is needed.
 /// </summary>
 internal static class WindowEffects
 {
     private const int UseImmersiveDarkMode = 20;
     private const int WindowCornerPreference = 33;
+    private const int CloakAttribute = 13;
 
     private const int CornerRound = 2;
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
 
-    /// <summary>
-    /// Anzuwenden, sobald das Fenster ein Handle hat - vorher greift keine der Angaben - und
-    /// erneut nach jedem Wechsel des Farbsatzes.
-    /// </summary>
+    /// <summary>Apply once the window has a handle, and again after every theme switch.</summary>
     public static void Apply(Window window, bool dark)
     {
         IntPtr handle = new WindowInteropHelper(window).Handle;
@@ -39,22 +28,16 @@ internal static class WindowEffects
             return;
         }
 
-        // Betrifft hier nur noch den Rahmen, weil die Leiste selbst gezeichnet wird - der
-        // Unterschied fällt am Fensterrand auf, wo sonst ein heller Strich um ein dunkles
-        // Fenster stünde.
+        // Otherwise a light line would surround a dark window.
         Set(handle, UseImmersiveDarkMode, dark ? 1 : 0);
-
-        // Runde Ecken: Windows 11 rundet von sich aus, aber nicht bei jedem Fensterstil.
         Set(handle, WindowCornerPreference, CornerRound);
     }
 
     /// <summary>
-    /// Tarnt das Fenster: es existiert, wird ausgemessen und platziert, aber nicht gezeichnet.
-    /// So erscheint das Flyout gleich an seinem Platz statt kurz irgendwo anders.
+    /// Cloaks the window: it exists and can be measured and placed, but isn't drawn. So the
+    /// flyout appears right where it belongs instead of briefly somewhere else.
     /// </summary>
     public static void Cloak(IntPtr handle, bool cloaked) => Set(handle, CloakAttribute, cloaked ? 1 : 0);
-
-    private const int CloakAttribute = 13;
 
     private static void Set(IntPtr handle, int attribute, int value)
     {

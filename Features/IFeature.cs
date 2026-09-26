@@ -3,25 +3,24 @@ using YsfUtil.Hotkeys;
 namespace YsfUtil.Features;
 
 /// <summary>
-/// Eine Funktion von ysfUtil. Neue Funktion: Klasse anlegen und in
-/// <see cref="FeatureCatalog.All"/> eintragen - Seite, Tray-Menü, Hotkey und Einstellungen
-/// ergeben sich daraus von selbst.
+/// A ysfUtil feature. To add one, implement this and list it in <see cref="FeatureCatalog.All"/> -
+/// flyout card, tray menu entry, hotkey and settings follow automatically.
 /// </summary>
 internal interface IFeature
 {
-    /// <summary>Stabiler Schlüssel für die Einstellungen, z. B. "taskbar-toggle".</summary>
+    /// <summary>Stable settings key, e.g. "taskbar-toggle".</summary>
     string Id { get; }
 
     string Name { get; }
 
     string Description { get; }
 
-    /// <summary>Glyphe aus Segoe Fluent Icons für die Zeile.</summary>
+    /// <summary>Segoe Fluent Icons glyph for the card.</summary>
     string Glyph { get; }
 
     Hotkey? DefaultHotkey { get; }
 
-    /// <summary>Aktueller Zustand in wenigen Worten, oder null, wenn es keinen gibt.</summary>
+    /// <summary>Current state in a few words, or null if there is none.</summary>
     string? Status { get; }
 
     void Execute();

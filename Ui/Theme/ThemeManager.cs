@@ -1,36 +1,34 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using Application = System.Windows.Application;
 using ResourceDictionary = System.Windows.ResourceDictionary;
 
 namespace YsfUtil.Ui.Theme;
 
 /// <summary>
-/// Hell oder dunkel - und die Möglichkeit, das Windows zu überlassen.
+/// Light or dark - or follow Windows.
 ///
-/// Umgeschaltet wird, indem der Farbsatz im Vorrat der Anwendung gegen den anderen getauscht
-/// wird. Damit das an den Bedienelementen ankommt, holen die Vorlagen ihre Farben über
-/// DynamicResource; eine StaticResource merkt sich den Pinsel und nicht den Schlüssel und
-/// bliebe auf dem alten stehen.
+/// Switching swaps the palette dictionary in the application resources. Templates fetch
+/// colours via DynamicResource so the change reaches them; a StaticResource would keep the old
+/// brush.
 /// </summary>
 internal static class ThemeManager
 {
     /// <summary>
-    /// Stelle des Farbsatzes unter den eingebundenen Wörterbüchern: hinter den Maßen, vor den
-    /// Vorlagen. Beim ersten Mal wird er dort eingeschoben, danach nur noch ausgetauscht -
-    /// ein Zuweisen beim ersten Mal würde das Wörterbuch überschreiben, das dort steht.
+    /// Position of the palette among the merged dictionaries: after metrics, before templates.
+    /// Inserted the first time, replaced afterwards.
     /// </summary>
     private const int PaletteSlot = 1;
 
     private static Application? host;
     private static bool installed;
 
-    /// <summary>Was eingestellt ist - nicht, was daraus folgt.</summary>
+    /// <summary>What is configured - not what it resolves to.</summary>
     public static ThemeMode Mode { get; private set; } = ThemeMode.System;
 
-    /// <summary>Was daraus folgt: bei <see cref="ThemeMode.System"/> die Windows-Einstellung.</summary>
+    /// <summary>What it resolves to: for <see cref="ThemeMode.System"/> the Windows setting.</summary>
     public static bool IsDark { get; private set; } = true;
 
-    /// <summary>Nach jedem Wechsel. Fenster und Infobereich hängen sich hier ein.</summary>
+    /// <summary>After every switch. Windows and the tray hook in here.</summary>
     public static event Action? Changed;
 
     public static void Attach(Application application, ThemeMode mode)
@@ -40,9 +38,8 @@ internal static class ThemeManager
         IsDark = Resolve(mode);
         Swap();
 
-        // Windows meldet den Wechsel zwischen hellem und dunklem Modus über dieselbe
-        // Nachricht wie andere Personalisierungs-Einstellungen. Nachgezogen wird nur, wenn
-        // wir Windows überhaupt folgen - sonst wäre die eigene Wahl nichts wert.
+        // Windows reports light/dark changes with the same message as other personalization
+        // settings. Only follow them when set to follow Windows.
         SystemEvents.UserPreferenceChanged += (_, e) =>
         {
             if (e.Category is not (UserPreferenceCategory.General or UserPreferenceCategory.VisualStyle))
@@ -90,8 +87,7 @@ internal static class ThemeManager
                 UriKind.Absolute),
         };
 
-        // Austauschen statt anhängen: zwei Farbsätze gleichzeitig im Vorrat würden sich
-        // gegenseitig überdecken, und welcher gewinnt, hinge an der Reihenfolge.
+        // Replace rather than add: two palettes at once would shadow each other.
         if (!installed)
         {
             host.Resources.MergedDictionaries.Insert(PaletteSlot, palette);
@@ -102,15 +98,10 @@ internal static class ThemeManager
             host.Resources.MergedDictionaries[PaletteSlot] = palette;
         }
 
-        // Der Akzent liegt über dem Farbsatz und wird gegen ihn gerechnet - im Hellen
-        // abgedunkelt, im Dunklen aufgehellt. Also neu bestimmen, nicht bloß stehen lassen.
+        // The accent is computed against the palette (darkened on light, lightened on dark).
         SystemAccent.Refresh();
     }
 
-    /// <summary>
-    /// Was Windows selbst verwendet. Der Wert heißt <c>AppsUseLightTheme</c> und meint die
-    /// Anwendungen; daneben steht einer für die Systemoberfläche, der anders stehen darf.
-    /// </summary>
     private static bool Resolve(ThemeMode mode) => mode switch
     {
         ThemeMode.Light => false,
@@ -118,6 +109,7 @@ internal static class ThemeManager
         _ => SystemPrefersDark(),
     };
 
+    /// <summary>The Windows app theme (AppsUseLightTheme), not the system UI theme.</summary>
     private static bool SystemPrefersDark()
     {
         try
@@ -131,7 +123,6 @@ internal static class ThemeManager
         }
         catch
         {
-            // Nicht lesbar - dann dunkel, wie bisher.
             return true;
         }
     }

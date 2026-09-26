@@ -3,37 +3,28 @@ using Keys = System.Windows.Forms.Keys;
 namespace YsfUtil.Hotkeys;
 
 /// <summary>
-/// Eine Tastenkombination in der Form, die RegisterHotKey erwartet: Umschalter als MOD_*-Bits,
-/// dazu eine Taste als virtueller Tastencode.
-///
-/// Als Text ("Ctrl+Alt+T") steht sie in den Einstellungen; <see cref="Describe"/> liefert die
-/// deutsche Anzeige ("Strg + Alt + T").
+/// A key combination in the form RegisterHotKey expects: modifiers as MOD_* bits plus a virtual
+/// key code. Stored as text ("Ctrl+Alt+T"); <see cref="Describe"/> gives the display form
+/// ("Ctrl + Alt + T").
 /// </summary>
 internal sealed record Hotkey(HotkeyModifiers Modifiers, Keys Key)
 {
-    public override string ToString()
+    public override string ToString() => string.Join("+", Parts(Key.ToString()));
+
+    public string Describe() => string.Join(" + ", Parts(DescribeKey(Key)));
+
+    private List<string> Parts(string key)
     {
         var parts = new List<string>();
         if (Modifiers.HasFlag(HotkeyModifiers.Control)) parts.Add("Ctrl");
         if (Modifiers.HasFlag(HotkeyModifiers.Alt)) parts.Add("Alt");
         if (Modifiers.HasFlag(HotkeyModifiers.Shift)) parts.Add("Shift");
         if (Modifiers.HasFlag(HotkeyModifiers.Win)) parts.Add("Win");
-        parts.Add(Key.ToString());
-        return string.Join("+", parts);
+        parts.Add(key);
+        return parts;
     }
 
-    public string Describe()
-    {
-        var parts = new List<string>();
-        if (Modifiers.HasFlag(HotkeyModifiers.Control)) parts.Add("Strg");
-        if (Modifiers.HasFlag(HotkeyModifiers.Alt)) parts.Add("Alt");
-        if (Modifiers.HasFlag(HotkeyModifiers.Shift)) parts.Add("Umschalt");
-        if (Modifiers.HasFlag(HotkeyModifiers.Win)) parts.Add("Win");
-        parts.Add(DescribeKey(Key));
-        return string.Join(" + ", parts);
-    }
-
-    /// <summary>Liest den Text aus den Einstellungen. Leer oder unlesbar ergibt null.</summary>
+    /// <summary>Reads the text from the settings. Empty or unreadable gives null.</summary>
     public static Hotkey? Parse(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -47,12 +38,12 @@ internal sealed record Hotkey(HotkeyModifiers Modifiers, Keys Key)
         {
             switch (raw.ToLowerInvariant())
             {
-                case "ctrl" or "strg" or "control": modifiers |= HotkeyModifiers.Control; break;
+                case "ctrl" or "control": modifiers |= HotkeyModifiers.Control; break;
                 case "alt": modifiers |= HotkeyModifiers.Alt; break;
-                case "shift" or "umschalt": modifiers |= HotkeyModifiers.Shift; break;
+                case "shift": modifiers |= HotkeyModifiers.Shift; break;
                 case "win": modifiers |= HotkeyModifiers.Win; break;
                 default:
-                    // Enum.TryParse nimmt auch Zahlen an - "1" wäre sonst die linke Maustaste.
+                    // Enum.TryParse also accepts numbers - "1" would be the left mouse button.
                     if (raw.All(char.IsDigit) || !Enum.TryParse(raw, ignoreCase: true, out key))
                     {
                         return null;
@@ -64,7 +55,7 @@ internal sealed record Hotkey(HotkeyModifiers Modifiers, Keys Key)
         return IsUsableKey(key) ? new Hotkey(modifiers, key) : null;
     }
 
-    /// <summary>Nur Umschalter ohne echte Taste ergeben keine Kombination.</summary>
+    /// <summary>Modifiers alone are not a combination.</summary>
     public static bool IsUsableKey(Keys key) =>
         key is not (Keys.None or Keys.ControlKey or Keys.LControlKey or Keys.RControlKey
             or Keys.ShiftKey or Keys.LShiftKey or Keys.RShiftKey
@@ -78,12 +69,11 @@ internal sealed record Hotkey(HotkeyModifiers Modifiers, Keys Key)
         Keys.OemMinus => "-",
         Keys.Oemcomma => ",",
         Keys.OemPeriod => ".",
-        Keys.OemQuestion => "#",
-        Keys.Space => "Leertaste",
-        Keys.Prior => "Bild auf",
-        Keys.Next => "Bild ab",
+        Keys.Space => "Space",
+        Keys.Prior => "Page Up",
+        Keys.Next => "Page Down",
         Keys.Escape => "Esc",
-        Keys.Return => "Eingabe",
+        Keys.Return => "Enter",
         _ => key.ToString(),
     };
 }

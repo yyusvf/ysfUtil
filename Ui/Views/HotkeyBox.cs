@@ -6,12 +6,10 @@ using Keys = System.Windows.Forms.Keys;
 namespace YsfUtil.Ui.Views;
 
 /// <summary>
-/// Nimmt eine Tastenkombination auf: anklicken, drücken, fertig. Esc, Rücktaste oder Entf
-/// entfernen sie.
+/// Records a key combination: click, press, done. Esc, Backspace or Delete remove it.
 ///
-/// Während der Aufnahme meldet <see cref="RecordingChanged"/> das nach außen, damit die
-/// systemweiten Hotkeys solange ruhen - sonst fängt Windows eine bereits belegte Kombination
-/// ab, bevor sie hier ankommt.
+/// While recording, <see cref="RecordingChanged"/> tells the app to pause global hotkeys -
+/// otherwise Windows would swallow an already registered combination before it arrives here.
 /// </summary>
 internal sealed class HotkeyBox : System.Windows.Controls.Button
 {
@@ -33,7 +31,7 @@ internal sealed class HotkeyBox : System.Windows.Controls.Button
         UpdateText();
     }
 
-    /// <summary>True beim Beginn einer Aufnahme, false an ihrem Ende.</summary>
+    /// <summary>True when recording starts, false when it ends.</summary>
     public static event Action<bool>? RecordingChanged;
 
     public Hotkey? Hotkey
@@ -85,7 +83,7 @@ internal sealed class HotkeyBox : System.Windows.Controls.Button
         var virtualKey = (Keys)KeyInterop.VirtualKeyFromKey(key);
         if (!Hotkeys.Hotkey.IsUsableKey(virtualKey))
         {
-            // Nur ein Umschalter - weiter warten, bis die eigentliche Taste folgt.
+            // Just a modifier - keep waiting for the actual key.
             return;
         }
 
@@ -95,7 +93,7 @@ internal sealed class HotkeyBox : System.Windows.Controls.Button
         if (modifiers.HasFlag(ModifierKeys.Shift)) mods |= HotkeyModifiers.Shift;
         if (modifiers.HasFlag(ModifierKeys.Windows)) mods |= HotkeyModifiers.Win;
 
-        // Ohne Umschalter nur Funktionstasten - sonst wäre z. B. "T" systemweit belegt.
+        // Without modifiers only function keys - otherwise e.g. "T" would be taken system-wide.
         if (mods == HotkeyModifiers.None && virtualKey is not (>= Keys.F1 and <= Keys.F24))
         {
             return;
@@ -109,5 +107,5 @@ internal sealed class HotkeyBox : System.Windows.Controls.Button
         ((HotkeyBox)sender).UpdateText();
 
     private void UpdateText() =>
-        Content = IsRecording ? "Kombination drücken …" : Hotkey?.Describe() ?? "Kein Hotkey";
+        Content = IsRecording ? "Press a combination…" : Hotkey?.Describe() ?? "No hotkey";
 }

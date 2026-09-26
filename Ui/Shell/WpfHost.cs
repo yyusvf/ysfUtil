@@ -4,9 +4,7 @@ using ShutdownMode = System.Windows.ShutdownMode;
 
 namespace YsfUtil.Ui.Shell;
 
-/// <summary>
-/// Erzeugt die WPF-Anwendung von Hand, weil <see cref="Program"/> der Einstiegspunkt bleibt.
-/// </summary>
+/// <summary>Creates the WPF application by hand, since <see cref="Program"/> stays the entry point.</summary>
 internal static class WpfHost
 {
     private static Application? application;
@@ -20,12 +18,12 @@ internal static class WpfHost
 
         application = new Application
         {
-            // Das Fenster schließt in den Infobereich. Beendet wird nur über das Tray-Menü.
+            // Closing the flyout never exits; only Quit does.
             ShutdownMode = ShutdownMode.OnExplicitShutdown,
         };
 
-        // Maße vorn, weil die Vorlagen sie über StaticResource holen. Der Farbsatz kommt
-        // danach auf seinen festen Platz, siehe ThemeManager.
+        // Metrics first, since templates fetch them via StaticResource. The palette then goes
+        // into its fixed slot, see ThemeManager.
         foreach (string path in new[]
         {
             "Ui/Theme/Metrics.xaml",

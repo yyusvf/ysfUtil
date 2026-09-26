@@ -1,8 +1,8 @@
-using System.Windows.Input;
+﻿using System.Windows.Input;
 
 namespace YsfUtil.Ui.ViewModels;
 
-/// <summary>Ein Befehl, der einfach eine Methode aufruft.</summary>
+/// <summary>A command that simply calls a method.</summary>
 internal sealed class RelayCommand(Action execute) : ICommand
 {
     public event EventHandler? CanExecuteChanged

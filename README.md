@@ -1,25 +1,25 @@
 # ysfUtil
 
-Kleine Helfer für Windows 11, per Hotkey. Lebt im Infobereich – kein Fenster, keine Installation.
+Small helpers for Windows 11, on a hotkey. Lives in the notification area – no window, no installer.
 
-## Funktionen
+## Features
 
-- **Taskleiste umschalten** (`Strg + Alt + T`): wechselt zwischen automatisch ausblenden und immer anzeigen.
+- **Toggle taskbar** (`Ctrl + Alt + T`): switches between auto-hide and always shown.
 
-Klick aufs Tray-Symbol öffnet ein Flyout zum Ein-/Ausschalten der Funktionen und Ändern der Hotkeys.
+Click the tray icon to open a flyout where you can turn features on or off and change their hotkeys.
 
-## Voraussetzungen
+## Requirements
 
 [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
 
-## Bauen
+## Build
 
 ```
 build.cmd
 ```
 
-Ergebnis: `dist\ysfUtil.exe`.
+Output: `dist\ysfUtil.exe`.
 
-## Lizenz
+## License
 
 MIT

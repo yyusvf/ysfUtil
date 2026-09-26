@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Windows.Media;
 using Microsoft.Win32;
 using Application = System.Windows.Application;
@@ -6,33 +6,21 @@ using Application = System.Windows.Application;
 namespace YsfUtil.Ui.Theme;
 
 /// <summary>
-/// Färbt die Akzent-Pinsel mit der Akzentfarbe, die in den Windows-Einstellungen steht.
-/// Betroffen ist alles, was in der Oberfläche farbig ist: Haken, Schieberegler,
-/// Auswahlpunkte, der aktive Reiter, angehakte Zeilen.
+/// Colours the accent brushes with the accent colour set in Windows: checkmarks, switches, radio
+/// dots and so on. The indigo in Dark.xaml / Light.xaml is the fallback if it can't be read.
 ///
-/// Das Blau in Dark.xaml und Light.xaml bleibt als Rückfall stehen - es ist die Farbe des
-/// Programms und greift, wenn sich die Systemfarbe nicht lesen lässt.
-///
-/// Die Pinsel werden ausgetauscht, nicht umgefärbt: WPF friert Pinsel ein, die aus einem
-/// Wörterbuch kommen, und ein eingefrorener Pinsel lässt sich nicht mehr ändern. Der neue
-/// kommt in den eigenen Vorrat der Anwendung, der vor den eingebundenen Wörterbüchern liegt.
-/// Damit er dort auch ankommt, holen die Vorlagen ihn über DynamicResource - eine
-/// StaticResource merkt sich den Pinsel selbst und nicht den Schlüssel.
+/// Brushes are replaced, not recoloured: WPF freezes brushes from dictionaries. The new ones go
+/// into the application's own resources, which take precedence over merged dictionaries.
 /// </summary>
 internal static class SystemAccent
 {
     /// <summary>
-    /// Helligkeit, die der Akzent auf dunklem Grund mindestens haben muss. Windows geht im
-    /// dunklen Modus genauso vor und nimmt eine aufgehellte Stufe statt des Volltons - ein
-    /// dunkelblauer Akzent wäre auf #202020 sonst kaum vom Hintergrund zu unterscheiden.
+    /// Minimum luminance of the accent on dark backgrounds - Windows also uses a lighter shade in
+    /// dark mode, a dark blue would barely stand out from #202020.
     /// </summary>
     private const double MinimumLuminance = 0.30;
 
-    /// <summary>
-    /// Und das Gegenstück für den hellen Farbsatz: dort wird derselbe Akzent abgedunkelt,
-    /// weil er sonst auf Weiß verschwindet. Ein helles Gelb als Systemfarbe ist kein
-    /// Sonderfall, sondern eine Einstellung, die es wirklich gibt.
-    /// </summary>
+    /// <summary>The counterpart for light backgrounds, where a bright accent would vanish on white.</summary>
     private const double MaximumLuminance = 0.32;
 
     [DllImport("dwmapi.dll")]
@@ -40,14 +28,12 @@ internal static class SystemAccent
 
     private static Application? host;
 
-    /// <summary>Setzt die Farben und hält sie nach, wenn der Nutzer sie in Windows ändert.</summary>
+    /// <summary>Applies the colours and follows changes made in Windows.</summary>
     public static void Attach(Application application)
     {
         host = application;
         Apply(application);
 
-        // Die Akzentfarbe steckt in den Personalisierungs-Einstellungen; Windows meldet deren
-        // Änderung über dieselbe Nachricht wie den Wechsel zwischen hellem und dunklem Modus.
         SystemEvents.UserPreferenceChanged += (_, e) =>
         {
             if (e.Category is UserPreferenceCategory.General or UserPreferenceCategory.Color)
@@ -57,7 +43,7 @@ internal static class SystemAccent
         };
     }
 
-    /// <summary>Neu bestimmen, weil sich der Farbsatz darunter geändert hat.</summary>
+    /// <summary>Recompute because the palette underneath changed.</summary>
     public static void Refresh()
     {
         if (host != null)
@@ -73,8 +59,6 @@ internal static class SystemAccent
             return;
         }
 
-        // Derselbe Systemton führt je nach Farbsatz zu einer anderen Farbe: auf dunklem Grund
-        // muss er hell genug sein, auf hellem dunkel genug.
         Color accent = ThemeManager.IsDark
             ? Lighten(system, MinimumLuminance)
             : Darken(system, MaximumLuminance);
@@ -84,9 +68,7 @@ internal static class SystemAccent
             Blend(accent, ThemeManager.IsDark ? Colors.White : Colors.Black, 0.18));
         Set(application, "AccentSoftBrush", Color.FromArgb(0x26, accent.R, accent.G, accent.B));
 
-        // Was auf der Akzentfläche liegt, richtet sich nach ihr: von Weiß und dem Fensterton
-        // gewinnt, was sich stärker davon abhebt. Eine feste Schwelle auf der Helligkeit wäre
-        // bei mittleren Tönen ein Münzwurf - gerade dort, wo es am ehesten schiefgeht.
+        // Content on the accent uses whichever of white or near-black contrasts more.
         Color dark = Color.FromRgb(0x20, 0x20, 0x20);
         Set(application, "OnAccentBrush",
             Contrast(accent, dark) >= Contrast(accent, Colors.White) ? dark : Colors.White);
@@ -100,9 +82,8 @@ internal static class SystemAccent
     }
 
     /// <summary>
-    /// Die eingestellte Akzentfarbe. Zuerst aus der Registrierung, wo sie als ABGR steht -
-    /// also mit vertauschtem Rot und Blau gegenüber der üblichen Schreibweise. Hilfsweise
-    /// über den Fenstermanager, der dieselbe Farbe als ARGB herausgibt.
+    /// The accent colour. From the registry first, where it is stored as ABGR; otherwise from
+    /// the window manager as ARGB.
     /// </summary>
     private static Color? Read()
     {
@@ -117,7 +98,7 @@ internal static class SystemAccent
         }
         catch
         {
-            // Wert nicht lesbar - dann eben über den Fenstermanager.
+            // Fall back to the window manager.
         }
 
         if (DwmGetColorizationColor(out uint argb, out _) == 0)
@@ -128,7 +109,6 @@ internal static class SystemAccent
         return null;
     }
 
-    /// <summary>Mischt so viel Weiß unter, bis die geforderte Helligkeit erreicht ist.</summary>
     private static Color Lighten(Color colour, double target)
     {
         Color result = colour;
@@ -139,7 +119,6 @@ internal static class SystemAccent
         return result;
     }
 
-    /// <summary>Dasselbe nach unten, mit Schwarz.</summary>
     private static Color Darken(Color colour, double target)
     {
         Color result = colour;
@@ -155,17 +134,11 @@ internal static class SystemAccent
         (byte)(from.G + (to.G - from.G) * amount),
         (byte)(from.B + (to.B - from.B) * amount));
 
-    /// <summary>
-    /// Wahrgenommene Helligkeit nach sRGB. Der Mittelwert der drei Kanäle taugt dafür nicht:
-    /// Grün wiegt für das Auge weit schwerer als Blau.
-    /// </summary>
+    /// <summary>Perceived sRGB luminance - green weighs far more than blue.</summary>
     private static double Luminance(Color colour) =>
         0.2126 * Linear(colour.R) + 0.7152 * Linear(colour.G) + 0.0722 * Linear(colour.B);
 
-    /// <summary>
-    /// Verhältnis der Helligkeiten zweier Farben, wie es die Barrierefreiheits-Richtlinien
-    /// festlegen: von 1 (nicht zu unterscheiden) bis 21 (Schwarz auf Weiß).
-    /// </summary>
+    /// <summary>WCAG contrast ratio, from 1 (identical) to 21 (black on white).</summary>
     private static double Contrast(Color a, Color b)
     {
         double first = Luminance(a);

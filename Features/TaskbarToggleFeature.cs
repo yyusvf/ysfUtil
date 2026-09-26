@@ -5,11 +5,10 @@ using Keys = System.Windows.Forms.Keys;
 namespace YsfUtil.Features;
 
 /// <summary>
-/// Schaltet die Taskleiste zwischen "automatisch ausblenden" und "immer anzeigen" um.
+/// Switches the taskbar between auto-hide and always shown.
 ///
-/// Über ABM_SETSTATE, dieselbe Schnittstelle, die auch die Taskleisten-Einstellungen nutzen:
-/// die Änderung greift sofort, ohne den Explorer neu zu starten, und gilt für die Taskleisten
-/// auf allen Bildschirmen.
+/// Uses ABM_SETSTATE, the same interface the taskbar settings use: takes effect immediately
+/// without restarting Explorer, and applies to the taskbars on all monitors.
 /// </summary>
 internal sealed class TaskbarToggleFeature : IFeature
 {
@@ -20,16 +19,16 @@ internal sealed class TaskbarToggleFeature : IFeature
 
     public string Id => "taskbar-toggle";
 
-    public string Name => "Taskleiste umschalten";
+    public string Name => "Toggle taskbar";
 
-    public string Description => "Wechselt zwischen automatisch ausblenden und immer anzeigen.";
+    public string Description => "Switches between auto-hide and always shown.";
 
-    // "Taskleiste" aus Segoe Fluent Icons
+    // "Taskbar" in Segoe Fluent Icons
     public string Glyph => "";
 
     public Hotkey? DefaultHotkey => new(HotkeyModifiers.Control | HotkeyModifiers.Alt, Keys.T);
 
-    public string? Status => IsAutoHide ? "Wird automatisch ausgeblendet" : "Wird immer angezeigt";
+    public string? Status => IsAutoHide ? "Auto-hidden" : "Always shown";
 
     public void Execute() => IsAutoHide = !IsAutoHide;
 

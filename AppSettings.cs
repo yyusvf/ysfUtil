@@ -11,20 +11,18 @@ internal enum ThemeMode
     Dark,
 }
 
-/// <summary>Einstellungen einer einzelnen Funktion.</summary>
+/// <summary>Settings of a single feature.</summary>
 internal sealed class FeatureSettings
 {
     public bool Enabled { get; set; } = true;
 
-    /// <summary>Als Text wie "Ctrl+Alt+T" - so bleibt die Datei von Hand lesbar. Leer heißt: kein Hotkey.</summary>
+    /// <summary>Stored as text like "Ctrl+Alt+T" so the file stays readable. Empty means no hotkey.</summary>
     public string? Hotkey { get; set; }
 }
 
 /// <summary>
-/// Alles, was ysfUtil sich merkt, in %APPDATA%\ysfUtil\settings.json.
-///
-/// Gespeichert wird sofort bei jeder Änderung - es gibt keinen Speichern-Knopf, wie in den
-/// Windows-Einstellungen auch.
+/// Everything ysfUtil remembers, in %APPDATA%\ysfUtil\settings.json. Saved immediately on every
+/// change - there is no save button.
 /// </summary>
 internal sealed class AppSettings
 {
@@ -42,10 +40,10 @@ internal sealed class AppSettings
 
     public ThemeMode Theme { get; set; } = ThemeMode.System;
 
-    /// <summary>Nach Kennung der Funktion, siehe <see cref="Features.IFeature.Id"/>.</summary>
+    /// <summary>Keyed by feature id, see <see cref="Features.IFeature.Id"/>.</summary>
     public Dictionary<string, FeatureSettings> Features { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Gab es noch keine Datei? Dann läuft ysfUtil zum ersten Mal.</summary>
+    /// <summary>No settings file yet, so this is the first run.</summary>
     [JsonIgnore]
     public bool IsFirstRun { get; private set; }
 
@@ -58,7 +56,7 @@ internal sealed class AppSettings
                 var loaded = JsonSerializer.Deserialize<AppSettings>(File.ReadAllText(FilePath), Json);
                 if (loaded != null)
                 {
-                    // Der Vergleich ohne Groß- und Kleinschreibung geht beim Einlesen verloren.
+                    // The case-insensitive comparer is lost during deserialization.
                     loaded.Features = new(loaded.Features, StringComparer.OrdinalIgnoreCase);
                     return loaded;
                 }
@@ -66,7 +64,7 @@ internal sealed class AppSettings
         }
         catch
         {
-            // Kaputte Datei - lieber mit Standardwerten starten als gar nicht.
+            // Broken file - better to start with defaults than not at all.
         }
 
         return new AppSettings { IsFirstRun = !File.Exists(FilePath) };
@@ -81,11 +79,11 @@ internal sealed class AppSettings
         }
         catch
         {
-            // Nicht schreibbar - die Einstellung gilt dann bis zum Beenden.
+            // Not writable - the setting then only lasts until exit.
         }
     }
 
-    /// <summary>Die Einstellungen einer Funktion; beim ersten Zugriff mit ihrem Standard-Hotkey angelegt.</summary>
+    /// <summary>A feature's settings, created with its default hotkey on first access.</summary>
     public FeatureSettings For(Features.IFeature feature)
     {
         if (!Features.TryGetValue(feature.Id, out FeatureSettings? settings))

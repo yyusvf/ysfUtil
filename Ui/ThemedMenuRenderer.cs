@@ -1,33 +1,23 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.Windows.Forms;
 using YsfUtil.Ui.Theme;
 
 namespace YsfUtil.Ui;
 
 /// <summary>
-/// Das Menü im Infobereich in denselben Farben wie das Fenster - in beiden Farbsätzen.
+/// The tray menu in the flyout's colours, in both themes.
 ///
-/// WinForms kennt keinen Farbsatz. Ein <see cref="ContextMenuStrip"/> zeichnet sich über einen
-/// Renderer, und der eingebaute holt seine Farben aus der Systemtabelle. Ersetzt wird deshalb
-/// die Farbtabelle, nicht das Zeichnen selbst: so bleiben Maße, Tastaturführung und Haken das,
-/// was der Nutzer von jedem anderen Menü kennt.
-///
-/// Die Tabelle fragt bei jedem Zeichnen neu über <see cref="Palette"/> nach. Ein Wechsel
-/// zwischen hell und dunkel braucht hier darum nichts weiter.
-///
-/// Zwei Dinge gehen über die Tabelle nicht und stehen darum unten: der Rahmen des Menüs und
-/// der Haken, den der eingebaute Renderer als dunkles Häkchen auf hellem Grund zeichnet.
+/// WinForms has no themes; the built-in renderer takes system colours. So the colour table is
+/// replaced rather than the drawing, keeping sizes, keyboard handling and checkmarks familiar.
+/// The table reads <see cref="Palette"/> on every paint, so theme switches need nothing extra.
 /// </summary>
 internal sealed class ThemedMenuRenderer : ToolStripProfessionalRenderer
 {
     public ThemedMenuRenderer() : base(new ThemedColours())
     {
-        // Eckige Ecken wie im Fenster; der eingebaute Renderer rundet sonst nach eigener
-        // Vorgabe und lässt an den Ecken den Grund des Systems stehen.
         RoundedEdges = false;
     }
 
-    /// <summary>Der Rahmen um das aufgeklappte Menü.</summary>
     protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
     {
         using var pen = new Pen(Palette.Stroke);
@@ -35,7 +25,7 @@ internal sealed class ThemedMenuRenderer : ToolStripProfessionalRenderer
         e.Graphics.DrawRectangle(pen, 0, 0, bounds.Width - 1, bounds.Height - 1);
     }
 
-    /// <summary>Der Haken vor einem angehakten Eintrag - im Akzent statt im Systemton.</summary>
+    /// <summary>The checkmark of a checked item - in the accent rather than the system colour.</summary>
     protected override void OnRenderItemCheck(ToolStripItemImageRenderEventArgs e)
     {
         var box = new Rectangle(e.ImageRectangle.X, e.ImageRectangle.Y,
@@ -47,7 +37,6 @@ internal sealed class ThemedMenuRenderer : ToolStripProfessionalRenderer
         e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
         e.Graphics.FillEllipse(brush, box);
 
-        // Ein Haken aus zwei Strichen - eine Schriftglyphe säße je nach Schriftgrad anders.
         float left = box.Left + box.Width * 0.28f;
         float middle = box.Left + box.Width * 0.45f;
         float right = box.Left + box.Width * 0.74f;
@@ -62,15 +51,11 @@ internal sealed class ThemedMenuRenderer : ToolStripProfessionalRenderer
         ]);
     }
 
-    /// <summary>
-    /// Die Farbtabelle, aus der der eingebaute Renderer schöpft. Jeder Wert kommt aus
-    /// <see cref="Palette"/>, also aus derselben Datei wie die Farben des Fensters.
-    /// </summary>
     private sealed class ThemedColours : ProfessionalColorTable
     {
         public ThemedColours()
         {
-            // Sonst mischt WinForms die Werte mit den Systemfarben auf.
+            // Otherwise WinForms mixes in system colours.
             UseSystemColors = false;
         }
 
