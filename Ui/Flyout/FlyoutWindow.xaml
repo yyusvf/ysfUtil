@@ -1,0 +1,225 @@
+﻿<Window x:Class="YsfUtil.Ui.Flyout.FlyoutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:YsfUtil.Ui.ViewModels"
+        xmlns:views="clr-namespace:YsfUtil.Ui.Views"
+        Title="ysfUtil"
+        Width="360"
+        SizeToContent="Height"
+        ShowInTaskbar="False"
+        Topmost="True"
+        Background="{DynamicResource WindowBrush}"
+        TextOptions.TextFormattingMode="Display"
+        UseLayoutRounding="True"
+        FontFamily="{StaticResource UiFont}">
+
+    <!--
+        Ein Flyout wie Lautstärke oder WLAN in Windows 11: ohne Titelleiste, am Infobereich,
+        weg beim Wegklicken.
+
+        Bewusst mit normalem Fensterrahmen und CaptionHeight 0 statt WindowStyle="None": nur
+        ein Fenster mit Rahmen bekommt vom Fenstermanager Schatten und runde Ecken. Der Rahmen
+        selbst ist dank WindowChrome unsichtbar, und ohne ResizeBorder lässt er sich nicht
+        ziehen.
+    -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="0"
+                      CornerRadius="0"
+                      GlassFrameThickness="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisible" />
+
+        <!-- ══ Funktionskarte ══════════════════════════════════════════════════
+             Oben Symbol, Name über Zustand und der Schalter; darunter das Hotkey-Feld über
+             die ganze Breite und die Taste zum sofortigen Ausführen. -->
+        <DataTemplate DataType="{x:Type vm:FeatureViewModel}">
+            <Border Margin="0,0,0,6"
+                    Padding="12"
+                    CornerRadius="{StaticResource RadiusCard}"
+                    Background="{DynamicResource CardBrush}"
+                    ToolTip="{Binding Description}">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border x:Name="GlyphTile"
+                            Grid.Row="0" Grid.Column="0"
+                            Width="34" Height="34"
+                            CornerRadius="{StaticResource RadiusControl}"
+                            Background="{DynamicResource AccentSoftBrush}">
+                        <TextBlock x:Name="GlyphText"
+                                   Text="{Binding Glyph}"
+                                   FontFamily="{StaticResource IconFont}"
+                                   FontSize="16"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </Border>
+
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="12,0,10,0" VerticalAlignment="Center">
+                        <TextBlock x:Name="NameText"
+                                   Style="{StaticResource BodyText}"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding Name}" />
+                        <TextBlock x:Name="StatusText"
+                                   Style="{StaticResource SecondaryText}"
+                                   FontSize="12"
+                                   Margin="0,2,0,0"
+                                   TextTrimming="None"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding StatusLine}" />
+                    </StackPanel>
+
+                    <CheckBox Grid.Row="0" Grid.Column="2"
+                              Style="{StaticResource ToggleSwitch}"
+                              ToolTip="Funktion ein- oder ausschalten"
+                              IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
+
+                    <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <views:HotkeyBox Grid.Column="0"
+                                         HorizontalAlignment="Stretch"
+                                         Hotkey="{Binding Hotkey, Mode=TwoWay}"
+                                         HasError="{Binding HasHotkeyError}"
+                                         IsEnabled="{Binding IsEnabled}"
+                                         ToolTip="Anklicken und Kombination drücken. Esc entfernt den Hotkey." />
+
+                        <Button Grid.Column="1"
+                                Style="{StaticResource GlyphButton}"
+                                Margin="6,0,0,0"
+                                Content="&#xE768;"
+                                ToolTip="Jetzt ausführen"
+                                Command="{Binding RunCommand}"
+                                IsEnabled="{Binding IsEnabled}" />
+                    </Grid>
+                </Grid>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                    <Setter TargetName="GlyphTile" Property="Background" Value="{DynamicResource ControlBrush}" />
+                    <Setter TargetName="GlyphText" Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
+                    <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasHotkeyError}" Value="True">
+                    <Setter TargetName="StatusText" Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid x:Name="Root">
+    <Grid Margin="12,8,12,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- ══ Kopf ════════════════════════════════════════════════════════════ -->
+        <Grid Grid.Row="0" Height="40" Margin="0,0,0,4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button x:Name="BackButton"
+                    Grid.Column="0"
+                    Style="{StaticResource GlyphButton}"
+                    Margin="-4,0,4,0"
+                    Content="&#xE72B;"
+                    ToolTip="Zurück"
+                    Visibility="Collapsed"
+                    Click="OnBack" />
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <Image x:Name="Logo"
+                       Width="18" Height="18"
+                       Margin="4,0,10,0"
+                       VerticalAlignment="Center">
+                    <Image.Source>
+                        <BitmapImage UriSource="pack://application:,,,/ysfUtil.ico" DecodePixelWidth="36" />
+                    </Image.Source>
+                </Image>
+                <TextBlock x:Name="HeaderText"
+                           Text="ysfUtil"
+                           VerticalAlignment="Center"
+                           FontSize="{StaticResource FontSizeTitle}"
+                           FontWeight="SemiBold"
+                           Foreground="{DynamicResource TextPrimaryBrush}" />
+            </StackPanel>
+
+            <Button x:Name="SettingsButton"
+                    Grid.Column="3"
+                    Style="{StaticResource GlyphButton}"
+                    Content="&#xE713;"
+                    ToolTip="Einstellungen"
+                    Click="OnSettings" />
+        </Grid>
+
+        <!-- ══ Funktionen ══════════════════════════════════════════════════════ -->
+        <StackPanel x:Name="FeaturesView" Grid.Row="1">
+            <ScrollViewer Style="{StaticResource ThemedScrollViewer}" MaxHeight="440">
+                <ItemsControl x:Name="FeatureList" />
+            </ScrollViewer>
+        </StackPanel>
+
+        <!-- ══ Einstellungen ═══════════════════════════════════════════════════ -->
+        <StackPanel x:Name="SettingsView" Grid.Row="1" Visibility="Collapsed">
+            <Border Style="{StaticResource SettingsCard}">
+                <StackPanel>
+                    <CheckBox Style="{StaticResource LabeledCheckBox}"
+                              Content="Mit Windows starten"
+                              IsChecked="{Binding AutostartEnabled, Mode=TwoWay}" />
+
+                    <TextBlock Style="{StaticResource SecondaryText}"
+                               Text="Erscheinungsbild"
+                               Margin="0,14,0,5" />
+                    <ComboBox Style="{StaticResource ThemedComboBox}"
+                              ItemsSource="{Binding Themes}"
+                              SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}" />
+                </StackPanel>
+            </Border>
+
+            <Grid Margin="2,12,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Style="{StaticResource SecondaryText}"
+                           Text="{Binding Version}" />
+
+                <Button Grid.Column="1"
+                        Style="{StaticResource GlyphButton}"
+                        Content="&#xE8B7;"
+                        ToolTip="Einstellungsordner öffnen"
+                        Command="{Binding OpenSettingsFolderCommand}" />
+
+                <Button Grid.Column="2"
+                        Style="{StaticResource StandardButton}"
+                        Margin="8,0,0,0"
+                        Content="Beenden"
+                        Click="OnExit" />
+            </Grid>
+        </StackPanel>
+    </Grid>
+    </Grid>
+</Window>
