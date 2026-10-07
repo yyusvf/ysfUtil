@@ -4,7 +4,8 @@ Small helpers for Windows 11, on a hotkey. Lives in the notification area – no
 
 ## Features
 
-- **Toggle taskbar** (`Ctrl + Alt + T`): switches between auto-hide and always shown.
+- **Toggle taskbar** (`Ctrl + Alt + D`): switches between auto-hide and always shown.
+- **Toggle desktop icons** (`Ctrl + Alt + T`): hides or shows all desktop icons.
 
 Click the tray icon to open a flyout where you can turn features on or off and change their hotkeys.
 

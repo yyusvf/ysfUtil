@@ -31,5 +31,6 @@ internal static class FeatureCatalog
     public static IReadOnlyList<IFeature> All { get; } =
     [
         new TaskbarToggleFeature(),
+        new DesktopIconsToggleFeature(),
     ];
 }

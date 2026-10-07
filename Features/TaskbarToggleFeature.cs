@@ -26,7 +26,7 @@ internal sealed class TaskbarToggleFeature : IFeature
     // "Taskbar" in Segoe Fluent Icons
     public string Glyph => "";
 
-    public Hotkey? DefaultHotkey => new(HotkeyModifiers.Control | HotkeyModifiers.Alt, Keys.T);
+    public Hotkey? DefaultHotkey => new(HotkeyModifiers.Control | HotkeyModifiers.Alt, Keys.D);
 
     public string? Status => IsAutoHide ? "Auto-hidden" : "Always shown";
 
