@@ -2,14 +2,11 @@ using System.Drawing;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
-using YsfUtil.Ui.Theme;
-using YsfUtil.Ui.ViewModels;
 
 namespace YsfUtil.Ui;
 
 /// <summary>
-/// The notification area icon. Left click toggles the flyout, right click opens a menu with all
-/// enabled features - themed like the flyout.
+/// The notification area icon. Left click toggles the flyout; right click opens it.
 /// </summary>
 internal sealed class TrayController : IDisposable
 {
@@ -18,46 +15,29 @@ internal sealed class TrayController : IDisposable
     private static extern bool DestroyIcon(IntPtr handle);
 
     private readonly NotifyIcon notifyIcon;
-    private readonly ContextMenuStrip menu = new();
     private readonly Icon icon;
     private readonly IntPtr iconHandle;
-    private readonly IReadOnlyList<FeatureViewModel> features;
     private Rectangle? pressAnchor;
 
-    public TrayController(IReadOnlyList<FeatureViewModel> features)
+    public TrayController()
     {
-        this.features = features;
-
         using (Bitmap bitmap = AppIconArt.Render(32))
         {
             iconHandle = bitmap.GetHicon();
             icon = Icon.FromHandle(iconHandle);
         }
 
-        // Own renderer, otherwise the menu would always be light. See ThemedMenuRenderer.
-        menu.RenderMode = ToolStripRenderMode.Professional;
-        menu.Renderer = new ThemedMenuRenderer();
-
         notifyIcon = new NotifyIcon
         {
             Icon = icon,
             Text = "ysfUtil",
             Visible = true,
-            ContextMenuStrip = menu,
         };
 
-        // The menu is rebuilt on right mouse down, before NotifyIcon shows it. Rebuilding in
-        // Opening makes Windows discard the menu on the first click.
-        //
-        // On left mouse down the icon position is captured: an open overflow is still open now,
-        // but may already be closed on mouse up.
+        // Capture the icon position before Windows can close the tray overflow.
         notifyIcon.MouseDown += (_, e) =>
         {
-            if (e.Button == MouseButtons.Right)
-            {
-                RebuildMenu();
-            }
-            else if (e.Button == MouseButtons.Left)
+            if (e.Button is MouseButtons.Left or MouseButtons.Right)
             {
                 pressAnchor = Flyout.TrayAnchor.Resolve(GetIconBounds());
             }
@@ -69,20 +49,19 @@ internal sealed class TrayController : IDisposable
                 FlyoutToggleRequested?.Invoke(pressAnchor ?? Flyout.TrayAnchor.Resolve(GetIconBounds()));
                 pressAnchor = null;
             }
+            else if (e.Button == MouseButtons.Right)
+            {
+                FlyoutRequested?.Invoke(pressAnchor ?? Flyout.TrayAnchor.Resolve(GetIconBounds()));
+                pressAnchor = null;
+            }
         };
     }
 
     /// <summary>Left click: toggle the flyout, with the spot it should sit above.</summary>
     public event Action<Rectangle?>? FlyoutToggleRequested;
 
-    /// <summary>From the menu: open the flyout, optionally on the settings view.</summary>
-    public event Action<bool>? FlyoutRequested;
-
-    public event Action<FeatureViewModel>? RunRequested;
-
-    public event Action? AutostartToggled;
-
-    public event Action? ExitRequested;
+    /// <summary>Right click: show the flyout at the tray icon.</summary>
+    public event Action<Rectangle?>? FlyoutRequested;
 
     /// <summary>
     /// Where the icon currently is, in screen pixels - on the taskbar or in the open overflow (^).
@@ -134,70 +113,11 @@ internal sealed class TrayController : IDisposable
         notifyIcon.ShowBalloonTip(4000);
     }
 
-    private void RebuildMenu()
-    {
-        menu.Items.Clear();
-        menu.BackColor = Palette.Window;
-        menu.ForeColor = Palette.Text;
-
-        foreach (FeatureViewModel feature in features)
-        {
-            if (!feature.IsEnabled)
-            {
-                continue;
-            }
-
-            feature.Refresh();
-            var item = new ToolStripMenuItem(feature.Name)
-            {
-                ShortcutKeyDisplayString = feature.Hotkey?.Describe(),
-                ToolTipText = feature.Status,
-            };
-            item.Click += (_, _) => RunRequested?.Invoke(feature);
-            menu.Items.Add(Style(item));
-
-            if (feature.Status is string status)
-            {
-                menu.Items.Add(Style(new ToolStripMenuItem("    " + status) { Enabled = false }));
-            }
-        }
-
-        if (menu.Items.Count > 0)
-        {
-            menu.Items.Add(new ToolStripSeparator());
-        }
-
-        var open = new ToolStripMenuItem("Open ysfUtil") { Font = new Font(menu.Font, FontStyle.Bold) };
-        open.Click += (_, _) => FlyoutRequested?.Invoke(false);
-        menu.Items.Add(Style(open));
-
-        var settings = new ToolStripMenuItem("Settings");
-        settings.Click += (_, _) => FlyoutRequested?.Invoke(true);
-        menu.Items.Add(Style(settings));
-
-        var autostart = new ToolStripMenuItem("Start with Windows") { Checked = Autostart.IsEnabled() };
-        autostart.Click += (_, _) => AutostartToggled?.Invoke();
-        menu.Items.Add(Style(autostart));
-
-        var exit = new ToolStripMenuItem("Quit");
-        exit.Click += (_, _) => ExitRequested?.Invoke();
-        menu.Items.Add(Style(exit));
-    }
-
-    /// <summary>Text colour per item - disabled items would otherwise use the system grey, barely readable on dark.</summary>
-    private static ToolStripMenuItem Style(ToolStripMenuItem item)
-    {
-        item.BackColor = Palette.Window;
-        item.ForeColor = item.Enabled ? Palette.Text : Palette.TextDisabled;
-        return item;
-    }
-
     public void Dispose()
     {
         // Without hiding explicitly, the icon lingers until the mouse passes over it.
         notifyIcon.Visible = false;
         notifyIcon.Dispose();
-        menu.Dispose();
         icon.Dispose();
         DestroyIcon(iconHandle);
     }

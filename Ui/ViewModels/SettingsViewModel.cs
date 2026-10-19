@@ -34,7 +34,7 @@ internal sealed class SettingsViewModel : ViewModelBase
         }
     }
 
-    /// <summary>Re-read on opening - the entry can also be changed from the tray menu.</summary>
+    /// <summary>Re-read on opening - the entry can also be changed in Windows settings.</summary>
     public void Refresh()
     {
         autostart = Autostart.IsEnabled();

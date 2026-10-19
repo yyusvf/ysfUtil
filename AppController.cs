@@ -21,6 +21,10 @@ internal sealed class AppController : IDisposable
     private readonly TrayController tray;
     private readonly List<FeatureViewModel> features;
     private readonly SettingsViewModel settingsModel;
+    private readonly ShutdownTimer shutdownTimer = new();
+    private readonly ShutdownTimerViewModel shutdownModel;
+    private readonly System.Windows.Threading.DispatcherTimer shutdownTicker =
+        new() { Interval = TimeSpan.FromSeconds(1) };
     private FlyoutWindow? flyout;
 
     public AppController(AppSettings settings, bool startQuietly)
@@ -36,14 +40,20 @@ internal sealed class AppController : IDisposable
             feature.Run += Run;
         }
         settingsModel = new SettingsViewModel(settings);
+        shutdownModel = new ShutdownTimerViewModel(shutdownTimer, settings);
 
-        tray = new TrayController(features);
+        tray = new TrayController();
+        shutdownTimer.EndingSoon += () => tray.ShowHint("Shutdown in less than a minute",
+            "Save your work. Open ysfUtil and click Cancel shutdown to stop the timer.", ToolTipIcon.Warning);
+        shutdownTimer.Failed += message => tray.ShowHint("Shutdown timer", message, ToolTipIcon.Error);
+        shutdownTimer.Changed += () =>
+        {
+            if (shutdownTimer.IsRunning) shutdownTicker.Start();
+            else shutdownTicker.Stop();
+        };
+        shutdownTicker.Tick += (_, _) => shutdownTimer.Tick();
         tray.FlyoutToggleRequested += anchor => Flyout().Toggle(anchor);
-        tray.FlyoutRequested += showSettings =>
-            Flyout().ShowFlyout(TrayAnchor.Resolve(tray.GetIconBounds()), showSettings, activate: true);
-        tray.RunRequested += Run;
-        tray.AutostartToggled += () => settingsModel.AutostartEnabled = !Autostart.IsEnabled();
-        tray.ExitRequested += Exit;
+        tray.FlyoutRequested += anchor => Flyout().ShowFlyout(anchor);
 
         // Starting the exe again opens the flyout of the running instance.
         hotkeys.ShowWindowRequested += () =>
@@ -87,7 +97,7 @@ internal sealed class AppController : IDisposable
     {
         if (flyout == null)
         {
-            flyout = new FlyoutWindow(features, settingsModel);
+            flyout = new FlyoutWindow(features, settingsModel, shutdownModel);
             flyout.ExitRequested += Exit;
 
             // State may have changed elsewhere, e.g. in the Windows settings.
@@ -139,6 +149,7 @@ internal sealed class AppController : IDisposable
 
     private void Run(FeatureViewModel feature)
     {
+        if (!feature.IsEnabled) return;
         try
         {
             feature.Feature.Execute();
@@ -158,6 +169,8 @@ internal sealed class AppController : IDisposable
 
     public void Dispose()
     {
+        shutdownTicker.Stop();
+        shutdownTimer.Cancel();
         hotkeys.Dispose();
         tray.Dispose();
     }

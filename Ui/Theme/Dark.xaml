@@ -24,13 +24,13 @@
     <!-- ══ Surfaces ════════════════════════════════════════════════════════════ -->
     <SolidColorBrush x:Key="WindowBrush" Color="#202020" />
     <SolidColorBrush x:Key="CardBrush" Color="#2D2D2D" />
-    <SolidColorBrush x:Key="ControlBrush" Color="#2D2D2D" />
-    <SolidColorBrush x:Key="ControlHoverBrush" Color="#383838" />
-    <SolidColorBrush x:Key="ControlPressedBrush" Color="#272727" />
+    <SolidColorBrush x:Key="ControlBrush" Color="#424242" />
+    <SolidColorBrush x:Key="ControlHoverBrush" Color="#525252" />
+    <SolidColorBrush x:Key="ControlPressedBrush" Color="#383838" />
     <SolidColorBrush x:Key="ControlDisabledBrush" Color="#262626" />
 
     <!-- ══ Strokes ═════════════════════════════════════════════════════════════ -->
-    <SolidColorBrush x:Key="StrokeBrush" Color="#303030" />
+    <SolidColorBrush x:Key="StrokeBrush" Color="#606060" />
     <SolidColorBrush x:Key="DividerBrush" Color="#303030" />
     <SolidColorBrush x:Key="StrokeStrongBrush" Color="#3F3F3F" />
 

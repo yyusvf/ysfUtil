@@ -24,17 +24,20 @@
     <Style x:Key="GlyphButton" TargetType="Button">
         <Setter Property="Width" Value="{StaticResource GlyphButtonSize}" />
         <Setter Property="Height" Value="{StaticResource GlyphButtonSize}" />
-        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Background" Value="{DynamicResource ControlBrush}" />
         <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
         <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
         <Setter Property="FontSize" Value="14" />
-        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="BorderBrush" Value="{DynamicResource StrokeBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
                     <Border x:Name="Fill"
                             Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
                             CornerRadius="{StaticResource RadiusControl}">
                         <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Border>
@@ -47,6 +50,7 @@
                             <Setter TargetName="Fill" Property="Background" Value="{DynamicResource ControlPressedBrush}" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Fill" Property="Background" Value="{DynamicResource ControlDisabledBrush}" />
                             <Setter Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
                         </Trigger>
                     </ControlTemplate.Triggers>

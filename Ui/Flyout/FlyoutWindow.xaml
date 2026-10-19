@@ -5,7 +5,10 @@
         xmlns:views="clr-namespace:YsfUtil.Ui.Views"
         Title="ysfUtil"
         Width="360"
+        MinWidth="360" MaxWidth="360"
+        MinHeight="72" MaxHeight="560"
         SizeToContent="Height"
+        ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True"
         Background="{DynamicResource WindowBrush}"
@@ -31,7 +34,7 @@
 
     <Window.Resources>
         <!-- ══ Feature card ════════════════════════════════════════════════════
-             Top: glyph, name over status, switch. Below: full-width hotkey box and the
+             Top: glyph, name over status. Below: full-width hotkey box and the
              run-now button. -->
         <DataTemplate DataType="{x:Type vm:FeatureViewModel}">
             <Border Margin="0,0,0,6"
@@ -39,6 +42,15 @@
                     CornerRadius="{StaticResource RadiusCard}"
                     Background="{DynamicResource CardBrush}"
                     ToolTip="{Binding Description}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -77,11 +89,6 @@
                                    TextWrapping="Wrap"
                                    Text="{Binding StatusLine}" />
                     </StackPanel>
-
-                    <CheckBox Grid.Row="0" Grid.Column="2"
-                              Style="{StaticResource ToggleSwitch}"
-                              ToolTip="Turn on or off"
-                              IsChecked="{Binding IsEnabled, Mode=TwoWay}" />
 
                     <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0">
                         <Grid.ColumnDefinitions>
@@ -123,7 +130,7 @@
         <Grid Margin="12,8,12,12">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
             <!-- ══ Header ══════════════════════════════════════════════════════ -->
@@ -132,6 +139,7 @@
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
@@ -167,17 +175,40 @@
                         Content="&#xE713;"
                         ToolTip="Settings"
                         Click="OnSettings" />
+                <Button x:Name="MinimizeButton"
+                        Grid.Column="4"
+                        Style="{StaticResource GlyphButton}"
+                        Margin="6,0,0,0"
+                        Content="&#xE921;"
+                        ToolTip="Minimize to tray"
+                        AutomationProperties.Name="Minimize to tray"
+                        Click="OnMinimize" />
             </Grid>
 
             <!-- ══ Features ════════════════════════════════════════════════════ -->
-            <StackPanel x:Name="FeaturesView" Grid.Row="1">
-                <ScrollViewer Style="{StaticResource ThemedScrollViewer}" MaxHeight="440">
-                    <ItemsControl x:Name="FeatureList" />
-                </ScrollViewer>
-            </StackPanel>
+            <ScrollViewer x:Name="FeaturesView" Grid.Row="1" Style="{StaticResource ThemedScrollViewer}">
+                    <StackPanel>
+                        <ItemsControl x:Name="FeatureList" />
+                        <views:ShutdownTimerCard x:Name="ShutdownCard">
+                            <views:ShutdownTimerCard.Visibility>
+                                <Binding Path="IsEnabled"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
+                            </views:ShutdownTimerCard.Visibility>
+                        </views:ShutdownTimerCard>
+                    </StackPanel>
+            </ScrollViewer>
 
             <!-- ══ Settings ════════════════════════════════════════════════════ -->
-            <StackPanel x:Name="SettingsView" Grid.Row="1" Visibility="Collapsed">
+            <!-- Canvas does not contribute to the desired window size: only the main view does. -->
+            <Canvas Grid.Row="1">
+            <Grid x:Name="SettingsView" Visibility="Collapsed"
+                  Width="{Binding ActualWidth, ElementName=FeaturesView}"
+                  Height="{Binding ActualHeight, ElementName=FeaturesView}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ScrollViewer Grid.Row="0" Style="{StaticResource ThemedScrollViewer}">
+                <StackPanel>
                 <Border Style="{StaticResource SettingsCard}">
                     <StackPanel>
                         <CheckBox Style="{StaticResource LabeledCheckBox}"
@@ -193,7 +224,41 @@
                     </StackPanel>
                 </Border>
 
-                <Grid Margin="2,12,0,0">
+                <Border Style="{StaticResource SettingsCard}" Margin="0,8,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Features" Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,0,0,12" />
+                        <ItemsControl x:Name="SettingsFeatureList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Name}" Style="{StaticResource BodyText}" Margin="0,0,10,0" />
+                                        <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitch}"
+                                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                                  AutomationProperties.Name="{Binding Name}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Grid x:Name="ShutdownSetting">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Shutdown timer" Style="{StaticResource BodyText}" Margin="0,0,10,0" />
+                            <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitch}"
+                                      IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                      AutomationProperties.Name="Shutdown timer" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+                </StackPanel>
+                </ScrollViewer>
+
+                <Grid Grid.Row="1" Margin="2,12,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -216,7 +281,8 @@
                             Content="Quit"
                             Click="OnExit" />
                 </Grid>
-            </StackPanel>
+            </Grid>
+            </Canvas>
         </Grid>
     </Grid>
 </Window>

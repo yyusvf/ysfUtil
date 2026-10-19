@@ -76,10 +76,21 @@ internal static class Program
             .Select(f => new Ui.ViewModels.FeatureViewModel(f, settings.For(f)))
             .ToList();
 
-        var flyout = new Ui.Flyout.FlyoutWindow(features, new Ui.ViewModels.SettingsViewModel(settings));
+        // Preview timers never invoke Windows shutdown or save the user's settings.
+        var previewTimer = new ShutdownTimer(() => { });
+        var shutdown = new Ui.ViewModels.ShutdownTimerViewModel(previewTimer, settings);
+        if (args.Any(a => string.Equals(a, "timer-running", StringComparison.OrdinalIgnoreCase)))
+        {
+            previewTimer.Start(30);
+        }
+        var flyout = new Ui.Flyout.FlyoutWindow(features, new Ui.ViewModels.SettingsViewModel(settings), shutdown);
         if (args.Any(a => string.Equals(a, "settings", StringComparison.OrdinalIgnoreCase)))
         {
             flyout.ShowSettingsView();
+        }
+        if (args.Any(a => string.Equals(a, "timer", StringComparison.OrdinalIgnoreCase)))
+        {
+            flyout.ShowShutdownTimer();
         }
 
         DesignRender.Capture(flyout, path, 360, 0);

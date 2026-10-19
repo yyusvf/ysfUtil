@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using YsfUtil.Ui.Shell;
 using YsfUtil.Ui.Theme;
 using YsfUtil.Ui.ViewModels;
@@ -46,12 +47,20 @@ public partial class FlyoutWindow : Window
     /// it - click elsewhere, overflow closed - the flyout closes too.
     /// </summary>
     private IntPtr openedFrom;
+    private bool hiding;
+    private bool isTrayPositioned;
+    private int fadeRevision;
+    private Screen? placementScreen;
 
-    internal FlyoutWindow(IReadOnlyList<FeatureViewModel> features, SettingsViewModel settings)
+    internal FlyoutWindow(IReadOnlyList<FeatureViewModel> features, SettingsViewModel settings,
+        ShutdownTimerViewModel shutdown)
     {
         InitializeComponent();
         FeatureList.ItemsSource = features;
+        SettingsFeatureList.ItemsSource = features;
         SettingsView.DataContext = settings;
+        ShutdownCard.DataContext = shutdown;
+        ShutdownSetting.DataContext = shutdown;
 
         outsideWatch.Tick += (_, _) => CloseIfClickedOutside();
         Activated += (_, _) => outsideWatch.Stop();
@@ -62,12 +71,14 @@ public partial class FlyoutWindow : Window
             HideFromAltTab();
         };
         ThemeManager.Changed += ApplyWindowEffects;
+        Loaded += (_, _) => LockContentHeight();
 
         Deactivated += (_, _) => HideFlyout();
-        SizeChanged += (_, _) =>
+        DpiChanged += (_, _) =>
         {
-            if (IsVisible)
+            if (IsVisible && isTrayPositioned)
             {
+                UpdateHeightLimit();
                 PlaceAtTray();
             }
         };
@@ -109,24 +120,38 @@ public partial class FlyoutWindow : Window
     /// </summary>
     public void ShowFlyout(System.Drawing.Rectangle? trayAnchor, bool settings = false, bool activate = false)
     {
+        bool resumeFade = hiding;
+        hiding = false;
+        Root.IsHitTestVisible = true;
+        ++fadeRevision; // Invalidate a pending fade-out's completion before reopening.
         Opening?.Invoke();
         SwitchView(settings);
 
         if (IsVisible)
         {
+            if (resumeFade) FadeWindow(1, 160);
             Activate();
             return;
         }
 
         anchor = trayAnchor;
+        placementScreen = anchor is { } a ? Screen.FromRectangle(a) : Screen.FromPoint(WinFormsCursor.Position);
 
         IntPtr handle = new WindowInteropHelper(this).EnsureHandle();
+        UpdateHeightLimit();
+        // Fit the main content once per opening, then keep both views at that exact height.
+        FeaturesView.Height = double.NaN;
         WindowEffects.Cloak(handle, true);
+        BeginAnimation(OpacityProperty, null);
+        Opacity = SystemParameters.ClientAreaAnimation ? 0 : 1;
         ShowActivated = activate;
         Show();
         UpdateLayout();
+        LockContentHeight();
         PlaceAtTray();
+        isTrayPositioned = true;
         WindowEffects.Cloak(handle, false);
+        FadeWindow(1, 160);
 
         if (activate)
         {
@@ -142,12 +167,61 @@ public partial class FlyoutWindow : Window
     public void HideFlyout()
     {
         outsideWatch.Stop();
-        if (!IsVisible)
+        if (!IsVisible || hiding)
         {
             return;
         }
         hiddenAt = DateTime.UtcNow;
-        Hide();
+        hiding = true;
+        Root.IsHitTestVisible = false;
+        FadeWindow(0, 110, () =>
+        {
+            isTrayPositioned = false;
+            Hide();
+            hiding = false;
+            hiddenAt = DateTime.UtcNow;
+            Root.IsHitTestVisible = true;
+            BeginAnimation(OpacityProperty, null);
+            Opacity = 1;
+        });
+    }
+
+    private void FadeWindow(double target, int milliseconds, Action? completed = null)
+    {
+        int revision = ++fadeRevision;
+        double from = Opacity;
+        BeginAnimation(OpacityProperty, null);
+        Opacity = target;
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            completed?.Invoke();
+            return;
+        }
+        var fade = new DoubleAnimation(from, target, TimeSpan.FromMilliseconds(milliseconds))
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            FillBehavior = FillBehavior.Stop,
+        };
+        fade.Completed += (_, _) =>
+        {
+            if (revision == fadeRevision) completed?.Invoke();
+        };
+        BeginAnimation(OpacityProperty, fade, HandoffBehavior.SnapshotAndReplace);
+    }
+
+    private void UpdateHeightLimit()
+    {
+        var screen = placementScreen ?? Screen.FromPoint(WinFormsCursor.Position);
+        double scale = VisualTreeHelper.GetDpi(this).DpiScaleY;
+        MaxHeight = Math.Max(MinHeight, Math.Min(560, screen.WorkingArea.Height / scale - 2 * EdgeMargin));
+    }
+
+    private void LockContentHeight()
+    {
+        if (FeaturesView.ActualHeight <= 0) return;
+        // Freeze the content viewport rather than the native window's frame-inclusive height.
+        // This avoids adding the non-client border again when changing sizing modes.
+        FeaturesView.Height = FeaturesView.ActualHeight;
     }
 
     /// <summary>Open but inactive: close once neither the opening window nor the flyout is in front.</summary>
@@ -168,6 +242,13 @@ public partial class FlyoutWindow : Window
 
     /// <summary>For the preview: show the settings view.</summary>
     public void ShowSettingsView() => SwitchView(true);
+
+    public void ShowShutdownTimer()
+    {
+        SwitchView(false);
+        UpdateLayout();
+        ShutdownCard.BringIntoView();
+    }
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)
     {
@@ -190,17 +271,30 @@ public partial class FlyoutWindow : Window
 
     private void SwitchView(bool settings)
     {
-        FeaturesView.Visibility = settings ? Visibility.Collapsed : Visibility.Visible;
+        bool changed = (SettingsView.Visibility == Visibility.Visible) != settings;
+        // Hidden still participates in layout, so Settings never determines the window height.
+        FeaturesView.Visibility = settings ? Visibility.Hidden : Visibility.Visible;
         SettingsView.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
         BackButton.Visibility = settings ? Visibility.Visible : Visibility.Collapsed;
         Logo.Visibility = settings ? Visibility.Collapsed : Visibility.Visible;
         SettingsButton.Visibility = settings ? Visibility.Collapsed : Visibility.Visible;
         HeaderText.Text = settings ? "Settings" : "ysfUtil";
+        if (changed && IsVisible && !hiding && SystemParameters.ClientAreaAnimation)
+        {
+            FrameworkElement view = settings ? SettingsView : FeaturesView;
+            var duration = TimeSpan.FromMilliseconds(170);
+            view.BeginAnimation(OpacityProperty, new DoubleAnimation(0, 1, duration)
+            {
+                FillBehavior = FillBehavior.Stop,
+            });
+        }
     }
 
     private void OnSettings(object sender, RoutedEventArgs e) => SwitchView(true);
 
     private void OnBack(object sender, RoutedEventArgs e) => SwitchView(false);
+
+    private void OnMinimize(object sender, RoutedEventArgs e) => HideFlyout();
 
     private void OnExit(object sender, RoutedEventArgs e) => ExitRequested?.Invoke();
 
@@ -248,7 +342,7 @@ public partial class FlyoutWindow : Window
         }
         else
         {
-            screen = Screen.FromPoint(WinFormsCursor.Position).WorkingArea;
+            screen = (placementScreen ?? Screen.FromPoint(WinFormsCursor.Position)).WorkingArea;
             x = edge == TaskbarEdge.Left ? screen.Left + margin : screen.Right - width - margin;
             y = edge == TaskbarEdge.Top ? screen.Top + margin : screen.Bottom - height - margin;
         }

@@ -1,0 +1,62 @@
+<UserControl x:Class="YsfUtil.Ui.Views.ShutdownTimerCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Style="{StaticResource SettingsCard}" Margin="0,2,0,6">
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="&#xE823;" FontFamily="{StaticResource IconFont}" FontSize="16"
+                           Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <TextBlock Text="Shutdown timer" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
+            </StackPanel>
+            <TextBlock Text="{Binding Status}" Style="{StaticResource SecondaryText}"
+                       Margin="0,5,0,12" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite" />
+            <StackPanel IsEnabled="{Binding CanStart}">
+                <UniformGrid Columns="3" Margin="0,0,0,8">
+                    <Button Content="15 min" Style="{StaticResource StandardButton}" Command="{Binding FifteenMinutesCommand}" Margin="0,0,4,0" />
+                    <Button Content="30 min" Style="{StaticResource StandardButton}" Command="{Binding ThirtyMinutesCommand}" Margin="4,0,4,0" />
+                    <Button Content="1 hour" Style="{StaticResource StandardButton}" Command="{Binding SixtyMinutesCommand}" Margin="4,0,0,0" />
+                </UniformGrid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox Text="{Binding Minutes, UpdateSourceTrigger=PropertyChanged}" MaxLength="4"
+                             AutomationProperties.Name="Shutdown delay in minutes" ToolTip="Minutes (1–1440)"
+                             FontSize="{StaticResource FontSizeBody}" VerticalContentAlignment="Center"
+                             Padding="10,5" Background="{DynamicResource ControlBrush}"
+                             Foreground="{DynamicResource TextPrimaryBrush}"
+                             CaretBrush="{DynamicResource TextPrimaryBrush}"
+                             BorderBrush="{DynamicResource StrokeBrush}" />
+                    <TextBlock Grid.Column="1" Text="minutes" Style="{StaticResource SecondaryText}" Margin="8,0,0,0" VerticalAlignment="Center" />
+                </Grid>
+            </StackPanel>
+            <TextBlock Text="{Binding Error}" Foreground="{DynamicResource ErrorBrush}" FontSize="12"
+                       TextWrapping="Wrap" Margin="0,6,0,0" AutomationProperties.LiveSetting="Assertive">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasError}" Value="True">
+                                <Setter Property="Visibility" Value="Visible" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+            <Grid Margin="0,10,0,0">
+                <Button Content="Start shutdown timer" Style="{StaticResource StandardButton}"
+                        Command="{Binding StartCommand}" IsEnabled="{Binding CanStart}">
+                    <Button.Visibility>
+                        <Binding Path="CanStart"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
+                    </Button.Visibility>
+                </Button>
+                <Button Content="Cancel shutdown" Style="{StaticResource StandardButton}" Command="{Binding CancelCommand}">
+                    <Button.Visibility>
+                        <Binding Path="IsRunning"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
+                    </Button.Visibility>
+                </Button>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

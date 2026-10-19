@@ -40,6 +40,9 @@ internal sealed class AppSettings
 
     public ThemeMode Theme { get; set; } = ThemeMode.System;
 
+    public int ShutdownMinutes { get; set; } = 30;
+    public bool ShutdownTimerEnabled { get; set; } = true;
+
     /// <summary>Keyed by feature id, see <see cref="Features.IFeature.Id"/>.</summary>
     public Dictionary<string, FeatureSettings> Features { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 

@@ -41,6 +41,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Tests/**/*.cs" />
     <!-- Same icon as the exe, also as a WPF resource for the flyout header. -->
     <Resource Include="ysfUtil.ico" />
   </ItemGroup>
