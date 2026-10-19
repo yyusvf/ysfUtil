@@ -3,8 +3,8 @@ using YsfUtil.Hotkeys;
 namespace YsfUtil.Features;
 
 /// <summary>
-/// A ysfUtil feature. To add one, implement this and list it in <see cref="FeatureCatalog.All"/> -
-/// flyout card, tray menu entry, hotkey and settings follow automatically.
+/// A ysfUtil feature. To add one, implement this and list it in <see cref="FeatureCatalog.Create"/> -
+/// flyout card, hotkey and settings follow automatically.
 /// </summary>
 internal interface IFeature
 {
@@ -23,14 +23,15 @@ internal interface IFeature
     /// <summary>Current state in a few words, or null if there is none.</summary>
     string? Status { get; }
 
-    void Execute();
+    Task ExecuteAsync();
 }
 
 internal static class FeatureCatalog
 {
-    public static IReadOnlyList<IFeature> All { get; } =
+    public static IReadOnlyList<IFeature> Create(Audio.AudioOutputSwitcher audio) =>
     [
         new TaskbarToggleFeature(),
         new DesktopIconsToggleFeature(),
+        new AudioOutputSwitchFeature(audio),
     ];
 }

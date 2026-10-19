@@ -7,6 +7,11 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        if (Updates.PortableUpdater.IsHelper(args))
+        {
+            Environment.ExitCode = Updates.PortableUpdater.Apply(args);
+            return;
+        }
 #if DEBUG
         // Rewrites ysfUtil.ico from the drawing in AppIconArt.
         int iconAt = Array.FindIndex(args, a => string.Equals(a, "--makeicon", StringComparison.OrdinalIgnoreCase));
@@ -39,6 +44,7 @@ internal static class Program
         }
 
         AppSettings settings = AppSettings.Load();
+        _ = Updates.PortableUpdater.CleanupAsync(args);
         System.Windows.Application application = WpfHost.Ensure(settings.Theme);
         application.DispatcherUnhandledException += (_, e) =>
         {
@@ -50,7 +56,7 @@ internal static class Program
             e.Handled = true;
         };
 
-        using (new AppController(settings, quiet))
+        using (new AppController(settings, quiet, args.Contains("--update-failed"), args.Contains("--update-show")))
         {
             application.Run();
         }
@@ -72,7 +78,10 @@ internal static class Program
         }
 
         AppSettings settings = AppSettings.Load();
-        var features = Features.FeatureCatalog.All
+        Ui.Views.SectionState.Configure(settings, save: false);
+        using var audioBackend = new Audio.WindowsAudioOutputBackend();
+        var audio = new Audio.AudioOutputSwitcher(audioBackend, settings.AudioOutput);
+        var features = Features.FeatureCatalog.Create(audio)
             .Select(f => new Ui.ViewModels.FeatureViewModel(f, settings.For(f)))
             .ToList();
 
@@ -83,10 +92,25 @@ internal static class Program
         {
             previewTimer.Start(30);
         }
-        var flyout = new Ui.Flyout.FlyoutWindow(features, new Ui.ViewModels.SettingsViewModel(settings), shutdown);
+        var audioModel = new Ui.ViewModels.AudioOutputViewModel(audio,
+            features.Single(f => f.IsAudioOutput), () => { });
+        using var volumeBackend = new Audio.WindowsAudioVolumeBackend();
+        // Preview rendering reads levels but never enforces or saves a microphone setting.
+        var volume = new Audio.AudioVolumeController(volumeBackend, new Audio.AudioVolumeSettings
+        {
+            Enabled = settings.AudioVolume.Enabled,
+            MicrophoneTarget = settings.AudioVolume.MicrophoneTarget,
+        });
+        var volumeModel = new Ui.ViewModels.AudioVolumeViewModel(volume, () => { });
+        using var previewUpdater = new Ui.ViewModels.UpdateViewModel(settings, () => "Preview", () => true, () => { });
+        var flyout = new Ui.Flyout.FlyoutWindow(features, new Ui.ViewModels.SettingsViewModel(settings) { Updater = previewUpdater }, shutdown, audioModel, volumeModel);
         if (args.Any(a => string.Equals(a, "settings", StringComparison.OrdinalIgnoreCase)))
         {
             flyout.ShowSettingsView();
+        }
+        if (args.Any(a => string.Equals(a, "audio-settings", StringComparison.OrdinalIgnoreCase)))
+        {
+            flyout.Loaded += (_, _) => flyout.ShowAudioSettings();
         }
         if (args.Any(a => string.Equals(a, "timer", StringComparison.OrdinalIgnoreCase)))
         {

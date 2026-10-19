@@ -82,6 +82,9 @@ timer.Tick();
 Check(warnings == 2, "A new timer did not reset the warning.");
 timer.Cancel();
 Console.WriteLine("PASS: validation, duplicate start, countdown, warning, expiry, cancellation, sleep, failure and restart.");
+await AudioOutputChecks.Run();
+AudioVolumeChecks.Run();
+await UpdateChecks.Run();
 
 sealed class TestClock : TimeProvider
 {

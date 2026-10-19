@@ -1,5 +1,6 @@
 using System.Windows;
 using YsfUtil.Features;
+using YsfUtil.Audio;
 using YsfUtil.Hotkeys;
 using YsfUtil.Ui;
 using YsfUtil.Ui.Flyout;
@@ -26,12 +27,27 @@ internal sealed class AppController : IDisposable
     private readonly System.Windows.Threading.DispatcherTimer shutdownTicker =
         new() { Interval = TimeSpan.FromSeconds(1) };
     private FlyoutWindow? flyout;
+    private readonly WindowsAudioOutputBackend audioBackend = new();
+    private readonly AudioOutputSwitcher audio;
+    private readonly AudioOutputViewModel audioModel;
+    private readonly System.Windows.Threading.DispatcherTimer audioRefresh =
+        new() { Interval = TimeSpan.FromMilliseconds(150) };
+    private Ui.Views.AudioSwitchBanner? audioBanner;
+    private bool disposed;
+    private readonly WindowsAudioVolumeBackend volumeBackend = new();
+    private readonly AudioVolumeViewModel volumeModel;
+    private readonly System.Windows.Threading.DispatcherTimer volumeWatch =
+        new() { Interval = TimeSpan.FromSeconds(1) };
+    private int volumeRefreshQueued;
+    private readonly UpdateViewModel updater;
 
-    public AppController(AppSettings settings, bool startQuietly)
+    public AppController(AppSettings settings, bool startQuietly, bool updateFailed = false, bool showAfterUpdate = false)
     {
         this.settings = settings;
+        SectionState.Configure(settings);
+        audio = new AudioOutputSwitcher(audioBackend, settings.AudioOutput);
 
-        features = FeatureCatalog.All
+        features = FeatureCatalog.Create(audio)
             .Select(f => new FeatureViewModel(f, settings.For(f)))
             .ToList();
         foreach (FeatureViewModel feature in features)
@@ -40,7 +56,55 @@ internal sealed class AppController : IDisposable
             feature.Run += Run;
         }
         settingsModel = new SettingsViewModel(settings);
+        updater = new UpdateViewModel(settings,
+            () => shutdownTimer.IsRunning ? "Cancel the active shutdown timer before updating." : null,
+            () => flyout?.IsVisible != true, Exit);
+        settingsModel.Updater = updater;
         shutdownModel = new ShutdownTimerViewModel(shutdownTimer, settings);
+        audioModel = new AudioOutputViewModel(audio,
+            features.Single(f => f.IsAudioOutput), settings.Save);
+        var volume = new AudioVolumeController(volumeBackend, settings.AudioVolume);
+        volumeModel = new AudioVolumeViewModel(volume, settings.Save);
+        void UpdateVolumeWatch()
+        {
+            var interval = TimeSpan.FromMilliseconds(settings.AudioVolume.LockMicrophone ? 250 : 1000);
+            if (volumeWatch.Interval != interval) volumeWatch.Interval = interval;
+            if (!settings.AudioVolume.Enabled) volumeWatch.Stop();
+            else if (!volumeWatch.IsEnabled) volumeWatch.Start();
+        }
+        volume.Changed += UpdateVolumeWatch;
+        volumeWatch.Tick += (_, _) => volumeModel.Refresh();
+        UpdateVolumeWatch();
+        var dispatcher = Application.Current.Dispatcher;
+        volumeBackend.VolumeChanged += () =>
+        {
+            if (disposed || dispatcher.HasShutdownStarted || Interlocked.Exchange(ref volumeRefreshQueued, 1) != 0) return;
+            dispatcher.BeginInvoke(() =>
+            {
+                Interlocked.Exchange(ref volumeRefreshQueued, 0);
+                if (!disposed) volumeModel.Refresh();
+            });
+        };
+        audioBackend.DevicesChanged += () =>
+        {
+            if (disposed || dispatcher.HasShutdownStarted) return;
+            dispatcher.BeginInvoke(() =>
+            {
+                if (disposed) return;
+                audioRefresh.Stop();
+                audioRefresh.Start();
+            });
+        };
+        audioRefresh.Tick += (_, _) => { audioRefresh.Stop(); audioModel.Refresh(); volumeModel.Refresh(); };
+        audio.Switched += device =>
+        {
+            if (settings.AudioOutput.ShowBanner)
+                (audioBanner ??= new Ui.Views.AudioSwitchBanner()).ShowDevice(device);
+        };
+        audio.Failed += message =>
+        {
+            if (!disposed) (audioBanner ??= new Ui.Views.AudioSwitchBanner()).ShowError(message);
+        };
 
         tray = new TrayController();
         shutdownTimer.EndingSoon += () => tray.ShowHint("Shutdown in less than a minute",
@@ -75,6 +139,11 @@ internal sealed class AppController : IDisposable
 
         ApplyHotkeys();
         Autostart.Refresh();
+        // Start after Application.Run installs WPF's synchronization context, so update
+        // continuations (including an automatic restart) stay on the owning UI thread.
+        Application.Current.Dispatcher.BeginInvoke(new Action(async () => await updater.StartAsync(updateFailed)));
+        if (showAfterUpdate)
+            Application.Current.Dispatcher.BeginInvoke(() => Flyout().ShowFlyout(TrayAnchor.Resolve(tray.GetIconBounds()), activate: true));
 
         bool firstRun = settings.IsFirstRun;
         if (firstRun)
@@ -82,14 +151,13 @@ internal sealed class AppController : IDisposable
             settings.Save();
         }
 
-        // Started by hand: briefly point out where ysfUtil lives. On first run with a tip,
-        // since Windows likes to hide new icons in the overflow (^).
+        // Same passive, click-through overlay as audio switching; quiet startup stays silent.
         if (!startQuietly)
         {
-            FeatureViewModel? first = features.FirstOrDefault(f => f.IsEnabled && f.Hotkey != null);
-            tray.ShowHint("ysfUtil is running in the notification area",
-                (firstRun ? "Click the icon to open ysfUtil. Tip: drag it from the overflow (^) onto the taskbar.\n" : "")
-                + (first != null ? $"{first.Hotkey!.Describe()}: {first.Name}" : ""));
+            Application.Current.Dispatcher.BeginInvoke(() =>
+            {
+                if (!disposed) (audioBanner ??= new AudioSwitchBanner()).ShowStartup(firstRun);
+            });
         }
     }
 
@@ -97,7 +165,7 @@ internal sealed class AppController : IDisposable
     {
         if (flyout == null)
         {
-            flyout = new FlyoutWindow(features, settingsModel, shutdownModel);
+            flyout = new FlyoutWindow(features, settingsModel, shutdownModel, audioModel, volumeModel);
             flyout.ExitRequested += Exit;
 
             // State may have changed elsewhere, e.g. in the Windows settings.
@@ -105,6 +173,8 @@ internal sealed class AppController : IDisposable
             {
                 features.ForEach(f => f.Refresh());
                 settingsModel.Refresh();
+                audioModel.Refresh();
+                volumeModel.Refresh();
             };
         }
         return flyout;
@@ -147,16 +217,17 @@ internal sealed class AppController : IDisposable
         }
     }
 
-    private void Run(FeatureViewModel feature)
+    private async void Run(FeatureViewModel feature)
     {
         if (!feature.IsEnabled) return;
         try
         {
-            feature.Feature.Execute();
+            await feature.Feature.ExecuteAsync();
         }
         catch (Exception ex)
         {
-            tray.ShowHint(feature.Name, ex.Message, ToolTipIcon.Error);
+            // Audio errors already appear in the passive overlay and inline in the flyout.
+            if (!feature.IsAudioOutput) tray.ShowHint(feature.Name, ex.Message, ToolTipIcon.Error);
         }
         feature.Refresh();
     }
@@ -169,6 +240,13 @@ internal sealed class AppController : IDisposable
 
     public void Dispose()
     {
+        disposed = true;
+        updater.Dispose();
+        audioRefresh.Stop();
+        volumeWatch.Stop();
+        volumeBackend.Dispose();
+        audioBanner?.Close();
+        audioBackend.Dispose();
         shutdownTicker.Stop();
         shutdownTimer.Cancel();
         hotkeys.Dispose();

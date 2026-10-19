@@ -45,17 +45,19 @@
                 <Border.Style>
                     <Style TargetType="Border">
                         <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsAudioOutput}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
                             <DataTrigger Binding="{Binding IsEnabled}" Value="False">
                                 <Setter Property="Visibility" Value="Collapsed" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
+                <Expander Style="{StaticResource FeatureExpander}" views:SectionState.Key="{Binding Feature.Id}"
+                          AutomationProperties.Name="{Binding Name}">
+                <Expander.Header>
                 <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
@@ -89,29 +91,19 @@
                                    TextWrapping="Wrap"
                                    Text="{Binding StatusLine}" />
                     </StackPanel>
-
-                    <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
-                        <views:HotkeyBox Grid.Column="0"
+                    <Button Grid.Column="2" Style="{StaticResource GlyphButton}" Content="&#xE768;"
+                            ToolTip="Run now" AutomationProperties.Name="{Binding Name}" Command="{Binding RunCommand}"
+                            IsEnabled="{Binding IsEnabled}" />
+                </Grid>
+                </Expander.Header>
+                        <views:HotkeyBox
                                          HorizontalAlignment="Stretch"
                                          Hotkey="{Binding Hotkey, Mode=TwoWay}"
                                          HasError="{Binding HasHotkeyError}"
                                          IsEnabled="{Binding IsEnabled}"
                                          ToolTip="Click and press a key combination. Esc removes the hotkey." />
 
-                        <Button Grid.Column="1"
-                                Style="{StaticResource GlyphButton}"
-                                Margin="6,0,0,0"
-                                Content="&#xE768;"
-                                ToolTip="Run now"
-                                Command="{Binding RunCommand}"
-                                IsEnabled="{Binding IsEnabled}" />
-                    </Grid>
-                </Grid>
+                </Expander>
             </Border>
             <DataTemplate.Triggers>
                 <DataTrigger Binding="{Binding IsEnabled}" Value="False">
@@ -175,6 +167,12 @@
                         Content="&#xE713;"
                         ToolTip="Settings"
                         Click="OnSettings" />
+                <Ellipse x:Name="UpdateIndicator" Grid.Column="3" Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Top"
+                         Margin="0,3,2,0" Fill="{DynamicResource AccentBrush}" IsHitTestVisible="False">
+                    <Ellipse.Visibility>
+                        <Binding Path="DataContext.Updater.HasUpdate" ElementName="SettingsView"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
+                    </Ellipse.Visibility>
+                </Ellipse>
                 <Button x:Name="MinimizeButton"
                         Grid.Column="4"
                         Style="{StaticResource GlyphButton}"
@@ -188,6 +186,24 @@
             <!-- ══ Features ════════════════════════════════════════════════════ -->
             <ScrollViewer x:Name="FeaturesView" Grid.Row="1" Style="{StaticResource ThemedScrollViewer}">
                     <StackPanel>
+                        <Border x:Name="EmptyFeatures" Visibility="Collapsed" Height="120" Padding="12"
+                                Background="{DynamicResource CardBrush}" CornerRadius="{StaticResource RadiusCard}">
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="No features enabled" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
+                                <TextBlock Text="Enable a feature in Settings to get started." Style="{StaticResource SecondaryText}"
+                                           TextWrapping="Wrap" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
+                        <views:AudioOutputCard x:Name="AudioCard">
+                            <views:AudioOutputCard.Visibility>
+                                <Binding Path="Feature.IsEnabled"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
+                            </views:AudioOutputCard.Visibility>
+                        </views:AudioOutputCard>
+                        <views:AudioVolumeCard x:Name="VolumeCard">
+                            <views:AudioVolumeCard.Visibility>
+                                <Binding Path="IsEnabled"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
+                            </views:AudioVolumeCard.Visibility>
+                        </views:AudioVolumeCard>
                         <ItemsControl x:Name="FeatureList" />
                         <views:ShutdownTimerCard x:Name="ShutdownCard">
                             <views:ShutdownTimerCard.Visibility>
@@ -207,7 +223,7 @@
                     <RowDefinition Height="*" />
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <ScrollViewer Grid.Row="0" Style="{StaticResource ThemedScrollViewer}">
+                <ScrollViewer x:Name="SettingsScroll" Grid.Row="0" Style="{StaticResource ThemedScrollViewer}">
                 <StackPanel>
                 <Border Style="{StaticResource SettingsCard}">
                     <StackPanel>
@@ -221,6 +237,27 @@
                         <ComboBox Style="{StaticResource ThemedComboBox}"
                                   ItemsSource="{Binding Themes}"
                                   SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource SettingsCard}" Margin="0,8,0,0" DataContext="{Binding Updater}">
+                    <StackPanel>
+                        <TextBlock Text="Updates" Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,0,0,8" />
+                        <ComboBox Style="{StaticResource ThemedComboBox}" ItemsSource="{Binding Modes}"
+                                  SelectedIndex="{Binding ModeIndex, Mode=TwoWay}" AutomationProperties.Name="Update behavior" />
+                        <TextBlock Text="{Binding Status}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap"
+                                   TextTrimming="None" Margin="0,10,0,10" />
+                        <Button Content="Check for updates" Style="{StaticResource StandardButton}"
+                                Command="{Binding CheckCommand}" IsEnabled="{Binding CanCheck}" />
+                        <StackPanel>
+                            <StackPanel.Visibility>
+                                <Binding Path="HasUpdate"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
+                            </StackPanel.Visibility>
+                            <Button Content="{Binding InstallLabel}" Style="{StaticResource StandardButton}" Margin="0,6,0,0"
+                                    Command="{Binding InstallCommand}" IsEnabled="{Binding CanInstall}" />
+                            <Button Content="Release notes" Style="{StaticResource StandardButton}" Margin="0,6,0,0"
+                                    Command="{Binding ReleaseCommand}" />
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
@@ -243,6 +280,12 @@
                                 </DataTemplate>
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
+                        <Grid x:Name="VolumeSetting" Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                            <TextBlock Text="Volume controls" Style="{StaticResource BodyText}" Margin="0,0,10,0" />
+                            <CheckBox Grid.Column="1" Style="{StaticResource ToggleSwitch}" IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                      AutomationProperties.Name="Volume controls" />
+                        </Grid>
                         <Grid x:Name="ShutdownSetting">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
@@ -255,6 +298,7 @@
                         </Grid>
                     </StackPanel>
                 </Border>
+                <views:AudioOutputSettingsCard x:Name="AudioSettingsCard" />
                 </StackPanel>
                 </ScrollViewer>
 

@@ -30,7 +30,11 @@ internal sealed class TaskbarToggleFeature : IFeature
 
     public string? Status => IsAutoHide ? "Auto-hidden" : "Always shown";
 
-    public void Execute() => IsAutoHide = !IsAutoHide;
+    public Task ExecuteAsync()
+    {
+        IsAutoHide = !IsAutoHide;
+        return Task.CompletedTask;
+    }
 
     public static bool IsAutoHide
     {

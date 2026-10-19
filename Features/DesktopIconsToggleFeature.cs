@@ -35,18 +35,22 @@ internal sealed class DesktopIconsToggleFeature : IFeature
         }
     }
 
-    public void Execute() => WithDesktopView(view =>
+    public Task ExecuteAsync()
     {
-        view.GetCurrentFolderFlags(out uint flags);
-        // Only change visibility; preserve layout, sorting and all other folder flags.
-        view.SetCurrentFolderFlags(NoIcons, flags ^ NoIcons);
-        view.GetCurrentFolderFlags(out uint updated);
-        if ((updated & NoIcons) == (flags & NoIcons))
+        WithDesktopView(view =>
         {
-            throw new InvalidOperationException("Windows could not change desktop icon visibility.");
-        }
-        return true;
-    });
+            view.GetCurrentFolderFlags(out uint flags);
+            // Only change visibility; preserve layout, sorting and all other folder flags.
+            view.SetCurrentFolderFlags(NoIcons, flags ^ NoIcons);
+            view.GetCurrentFolderFlags(out uint updated);
+            if ((updated & NoIcons) == (flags & NoIcons))
+            {
+                throw new InvalidOperationException("Windows could not change desktop icon visibility.");
+            }
+            return true;
+        });
+        return Task.CompletedTask;
+    }
 
     private static T WithDesktopView<T>(Func<IFolderView2, T> action)
     {

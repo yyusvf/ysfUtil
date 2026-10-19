@@ -64,6 +64,7 @@ internal sealed class SettingsViewModel : ViewModelBase
         "Version " + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?");
 
     public RelayCommand OpenSettingsFolderCommand { get; }
+    public UpdateViewModel? Updater { get; set; }
 
     private static void OpenSettingsFolder()
     {

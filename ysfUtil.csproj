@@ -26,12 +26,17 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 
-    <Version>0.1.0</Version>
+    <Version>0.2.0</Version>
     <Company>Yusuf Esad Mumcu</Company>
     <Copyright>Copyright (c) 2026 Yusuf Esad Mumcu</Copyright>
     <Product>ysfUtil</Product>
     <AssemblyTitle>ysfUtil</AssemblyTitle>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+    <None Update="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- WinForms and WPF share many type names (Application, Brush, Color, ...). Files that

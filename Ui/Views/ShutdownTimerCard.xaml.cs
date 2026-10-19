@@ -5,4 +5,5 @@ namespace YsfUtil.Ui.Views;
 public partial class ShutdownTimerCard : UserControl
 {
     public ShutdownTimerCard() => InitializeComponent();
+    public void ExpandOptions() => Options.SetCurrentValue(Expander.IsExpandedProperty, true);
 }

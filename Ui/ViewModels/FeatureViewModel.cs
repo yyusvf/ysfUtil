@@ -34,6 +34,7 @@ internal sealed class FeatureViewModel : ViewModelBase
     public string Description => Feature.Description;
 
     public string Glyph => Feature.Glyph;
+    public bool IsAudioOutput => Feature is AudioOutputSwitchFeature;
 
     public RelayCommand RunCommand { get; }
 

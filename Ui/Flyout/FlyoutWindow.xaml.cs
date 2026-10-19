@@ -53,7 +53,7 @@ public partial class FlyoutWindow : Window
     private Screen? placementScreen;
 
     internal FlyoutWindow(IReadOnlyList<FeatureViewModel> features, SettingsViewModel settings,
-        ShutdownTimerViewModel shutdown)
+        ShutdownTimerViewModel shutdown, AudioOutputViewModel audio, AudioVolumeViewModel volume)
     {
         InitializeComponent();
         FeatureList.ItemsSource = features;
@@ -61,6 +61,18 @@ public partial class FlyoutWindow : Window
         SettingsView.DataContext = settings;
         ShutdownCard.DataContext = shutdown;
         ShutdownSetting.DataContext = shutdown;
+        AudioCard.DataContext = audio;
+        AudioSettingsCard.DataContext = audio;
+        VolumeCard.DataContext = volume;
+        VolumeSetting.DataContext = volume;
+        AudioCard.SettingsRequested += ShowAudioSettings;
+        void UpdateEmptyFeatures() => EmptyFeatures.Visibility = features.Any(f => f.IsEnabled) || shutdown.IsEnabled || volume.IsEnabled
+            ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var feature in features)
+            feature.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(feature.IsEnabled)) UpdateEmptyFeatures(); };
+        shutdown.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(shutdown.IsEnabled)) UpdateEmptyFeatures(); };
+        volume.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(volume.IsEnabled)) UpdateEmptyFeatures(); };
+        UpdateEmptyFeatures();
 
         outsideWatch.Tick += (_, _) => CloseIfClickedOutside();
         Activated += (_, _) => outsideWatch.Stop();
@@ -243,9 +255,18 @@ public partial class FlyoutWindow : Window
     /// <summary>For the preview: show the settings view.</summary>
     public void ShowSettingsView() => SwitchView(true);
 
+    public void ShowAudioSettings()
+    {
+        SwitchView(true);
+        AudioSettingsCard.ExpandOptions();
+        UpdateLayout();
+        AudioSettingsCard.BringIntoView();
+    }
+
     public void ShowShutdownTimer()
     {
         SwitchView(false);
+        ShutdownCard.ExpandOptions();
         UpdateLayout();
         ShutdownCard.BringIntoView();
     }
@@ -271,6 +292,8 @@ public partial class FlyoutWindow : Window
 
     private void SwitchView(bool settings)
     {
+        Ui.Views.SmoothScroll.Stop(FeaturesView);
+        Ui.Views.SmoothScroll.Stop(SettingsScroll);
         bool changed = (SettingsView.Visibility == Visibility.Visible) != settings;
         // Hidden still participates in layout, so Settings never determines the window height.
         FeaturesView.Visibility = settings ? Visibility.Hidden : Visibility.Visible;

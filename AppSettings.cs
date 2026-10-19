@@ -42,6 +42,11 @@ internal sealed class AppSettings
 
     public int ShutdownMinutes { get; set; } = 30;
     public bool ShutdownTimerEnabled { get; set; } = true;
+    public Audio.AudioOutputSettings AudioOutput { get; set; } = new();
+    public Audio.AudioVolumeSettings AudioVolume { get; set; } = new();
+    public Updates.UpdateMode Updates { get; set; } = YsfUtil.Updates.UpdateMode.Notify;
+    public DateTime LastUpdateCheckUtc { get; set; }
+    public HashSet<string> CollapsedSections { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Keyed by feature id, see <see cref="Features.IFeature.Id"/>.</summary>
     public Dictionary<string, FeatureSettings> Features { get; set; } = new(StringComparer.OrdinalIgnoreCase);
@@ -61,6 +66,11 @@ internal sealed class AppSettings
                 {
                     // The case-insensitive comparer is lost during deserialization.
                     loaded.Features = new(loaded.Features, StringComparer.OrdinalIgnoreCase);
+                    loaded.AudioOutput ??= new();
+                    loaded.AudioOutput.Devices ??= [];
+                    loaded.AudioVolume ??= new();
+                    loaded.CollapsedSections = new(loaded.CollapsedSections ?? [], StringComparer.OrdinalIgnoreCase);
+                    loaded.AudioVolume.MicrophoneTarget = Math.Clamp(loaded.AudioVolume.MicrophoneTarget, 0, 100);
                     return loaded;
                 }
             }
