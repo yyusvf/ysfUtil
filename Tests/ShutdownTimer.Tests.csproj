@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../Updates/UpdateChecker.cs" Link="UpdateChecker.cs" />
+    <Compile Include="../Updates/Installation.cs" Link="Installation.cs" />
     <Compile Include="../Updates/PortableUpdater.cs" Link="PortableUpdater.cs" />
     <Compile Include="../ShutdownTimer.cs" Link="ShutdownTimer.cs" />
     <Compile Include="../Audio/AudioOutputSettings.cs" Link="AudioOutputSettings.cs" />

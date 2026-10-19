@@ -8,7 +8,7 @@ namespace YsfUtil.Updates;
 
 internal enum UpdateMode { Notify, Automatic, Never }
 
-internal sealed record UpdateInfo(Version Version, string PageUrl, string? DownloadUrl, long Size, string? Sha256);
+internal sealed record UpdateInfo(Version Version, string PageUrl, string? DownloadUrl, long Size, string? Sha256, bool IsSetup = false);
 
 // Adapted from Audio Mirror: stable GitHub releases, numeric comparison and daily checks.
 internal static class UpdateChecker
@@ -21,7 +21,7 @@ internal static class UpdateChecker
 
     private static Version Normalize(Version v) => new(v.Major, v.Minor, Math.Max(v.Build, 0), Math.Max(v.Revision, 0));
 
-    public static UpdateInfo? Parse(string json, Version current)
+    public static UpdateInfo? Parse(string json, Version current, bool installed = false)
     {
         using var doc = JsonDocument.Parse(json);
         UpdateInfo? best = null;
@@ -39,7 +39,8 @@ internal static class UpdateChecker
             foreach (var asset in release.GetProperty("assets").EnumerateArray())
             {
                 string name = asset.GetProperty("name").GetString() ?? "";
-                if (!name.Equals("ysfUtil.exe", StringComparison.OrdinalIgnoreCase)) continue;
+                string expected = installed ? "ysfUtil-Setup.exe" : "ysfUtil.exe";
+                if (!name.Equals(expected, StringComparison.OrdinalIgnoreCase)) continue;
                 string candidate = asset.GetProperty("browser_download_url").GetString() ?? "";
                 string digest = asset.TryGetProperty("digest", out var d) ? d.GetString() ?? "" : "";
                 long length = asset.GetProperty("size").GetInt64();
@@ -52,7 +53,7 @@ internal static class UpdateChecker
                 size = length;
                 break;
             }
-            best = new(version, page, url, size, hash);
+            best = new(version, page, url, size, hash, IsSetup: installed);
         }
         return best;
     }
@@ -69,12 +70,12 @@ internal static class UpdateChecker
     public static async Task<UpdateInfo?> FindNewerAsync(CancellationToken token)
     {
         using var client = Client(TimeSpan.FromSeconds(15));
-        return Parse(await client.GetStringAsync(Feed, token).ConfigureAwait(false), CurrentVersion);
+        return Parse(await client.GetStringAsync(Feed, token).ConfigureAwait(false), CurrentVersion, Installation.IsInstalled);
     }
 
     public static async Task<string> DownloadAsync(UpdateInfo update, IProgress<int> progress, CancellationToken token)
     {
-        if (update.DownloadUrl == null || update.Sha256 == null) throw new InvalidOperationException("This release has no verified portable update.");
+        if (update.DownloadUrl == null || update.Sha256 == null) throw new InvalidOperationException("This release has no verified update for your installation.");
         string folder = Path.Combine(Path.GetTempPath(), "ysfUtil-updates", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
         string path = Path.Combine(folder, "update.exe");

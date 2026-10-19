@@ -21,18 +21,27 @@ jobs:
           if ('${{ github.ref_type }}' -eq 'tag' -and '${{ github.ref_name }}' -cne "v$version") {
             throw "Tag must match project version v$version"
           }
-      - name: Test
-        run: dotnet run --project Tests/ShutdownTimer.Tests.csproj -c Release
-      - name: Publish portable app
-        run: dotnet publish ysfUtil.csproj -c Release -o release -p:DebugType=None -p:DebugSymbols=false
+      - name: Build setup and portable app
+        shell: pwsh
+        run: ./build-release.ps1
       - name: Create release
         if: github.ref_type == 'tag'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          gh release create '${{ github.ref_name }}' release/ysfUtil.exe release/THIRD-PARTY-NOTICES.txt --verify-tag --generate-notes --title 'ysfUtil ${{ github.ref_name }}'
+          $notes = @'
+          ## Downloads
+
+          **Recommended: [Download Setup](https://github.com/yyusvf/ysfUtil/releases/download/${{ github.ref_name }}/ysfUtil-Setup.exe)** — installs ysfUtil for your Windows user, includes the .NET runtime, and supports one-click setup updates. No administrator rights required.
+
+          **Alternative: [Portable EXE](https://github.com/yyusvf/ysfUtil/releases/download/${{ github.ref_name }}/ysfUtil.exe)** — no installation, requires the .NET 8 Desktop Runtime. Portable updates remain supported.
+
+          Your settings are kept when updating or switching to Setup. Close a running copy before installing.
+          '@
+          $notes | Set-Content release-notes.md
+          gh release create '${{ github.ref_name }}' dist/packages/ysfUtil-Setup.exe dist/packages/ysfUtil.exe dist/packages/THIRD-PARTY-NOTICES.txt --verify-tag --generate-notes --notes-file release-notes.md --title 'ysfUtil ${{ github.ref_name }}'
       - uses: actions/upload-artifact@v4
         with:
-          name: ysfUtil-portable
-          path: release/*
+          name: ysfUtil-downloads
+          path: dist/packages/*

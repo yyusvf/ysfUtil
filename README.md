@@ -1,6 +1,19 @@
 # ysfUtil
 
-Small helpers for Windows 11, on a hotkey. Lives in the notification area – no window, no installer.
+Small helpers for Windows 11, on a hotkey. Lives in the notification area.
+
+## Download
+
+**[Download Setup (recommended)](https://github.com/yyusvf/ysfUtil/releases/latest/download/ysfUtil-Setup.exe)**
+
+Installs for your Windows user with a Start menu entry and an uninstaller. The .NET runtime
+is included, and no administrator rights are required. Settings survive updates and reinstalls.
+
+**[Portable EXE (alternative)](https://github.com/yyusvf/ysfUtil/releases/latest/download/ysfUtil.exe)**
+
+Run without installation. Requires the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0).
+Close an older running copy before installing or launching another copy. Existing settings
+are shared, so you can move from portable to Setup without reconfiguring the app.
 
 ## Features
 
@@ -57,21 +70,25 @@ while running; a small dot on the settings icon signals an available update. No 
 or Windows notification appears. Choose **Install automatically** for background updates,
 or **Never check automatically** to disable background requests (manual checks still work).
 
-Updates download the release's `ysfUtil.exe`, verify its size and GitHub SHA-256 digest,
-then use a temporary copy of the app to wait for exit, atomically replace the portable EXE,
-and restart it in its previous visible/tray state. Settings and autostart are preserved;
-the previous EXE is retained alongside it as `ysfUtil.exe.previous`. A running shutdown
-timer blocks installation until cancelled. Download failures leave the running app intact.
-The destination folder must be writable, and updating requires the published single-file EXE.
+Installed versions download `ysfUtil-Setup.exe`, verify its size and GitHub SHA-256 digest,
+then wait for ysfUtil to exit before running the setup silently in the existing installation
+directory. Portable versions instead download `ysfUtil.exe` and atomically replace the EXE,
+keeping the previous file as `ysfUtil.exe.previous`. A temporary helper restarts the app in
+its previous visible/tray state. Settings and the user's autostart choice are preserved.
+A running shutdown timer blocks installation until cancelled. Download failures leave the
+running app intact. The destination folder must be writable. Installed copies never fall
+back to replacing themselves with a portable build when a release has no setup.
 
 Publishing: set `<Version>` in `ysfUtil.csproj` and push the matching `vX.Y.Z` tag.
-`.github/workflows/release.yml` tests, publishes and attaches the portable EXE to a stable
-GitHub release. Keep the asset name **ysfUtil.exe**: installed updaters depend on it.
+`.github/workflows/release.yml` tests, builds the setup and portable EXE, and presents Setup
+as the recommended download in a stable GitHub release. Keep the asset names
+**ysfUtil-Setup.exe** and **ysfUtil.exe**: existing updaters depend on them.
 Source-only releases or assets without a GitHub SHA-256 digest offer the release page instead.
 
 ## Requirements
 
-[.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
+Windows x64. Setup includes the runtime; only the portable EXE requires the
+[.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) to be installed separately.
 
 ## Build
 
@@ -80,6 +97,14 @@ build.cmd
 ```
 
 Output: `dist\ysfUtil.exe`.
+
+To build both downloads, install [Inno Setup 6](https://jrsoftware.org/isinfo.php) and run:
+
+```powershell
+./build-release.ps1
+```
+
+Output: `dist\packages\ysfUtil-Setup.exe` (recommended), `dist\packages\ysfUtil.exe` (portable).
 
 Timer and audio logic checks (with a simulated clock, shutdown action and audio devices):
 

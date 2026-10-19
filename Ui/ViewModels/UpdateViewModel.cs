@@ -55,7 +55,7 @@ internal sealed class UpdateViewModel : ViewModelBase, IDisposable
 
     public async Task StartAsync(bool failed)
     {
-        if (failed) Status = "Update failed. Your previous version was restored. Please try again.";
+        if (failed) Status = "Update failed. ysfUtil was restarted. Please try again or run the setup manually.";
         timer.Start();
         await CheckAsync(manual: false);
     }
@@ -100,7 +100,7 @@ internal sealed class UpdateViewModel : ViewModelBase, IDisposable
             blocked = installBlock();
             if (blocked != null) { Status = blocked; return; }
             Status = "Restarting ysfUtil…";
-            await PortableUpdater.PrepareAsync(source, available.Sha256!, quiet(), lifetime.Token);
+            await PortableUpdater.PrepareAsync(source, available.Sha256!, quiet(), lifetime.Token, available.IsSetup);
             exit();
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }

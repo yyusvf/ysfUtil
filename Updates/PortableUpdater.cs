@@ -5,7 +5,7 @@ namespace YsfUtil.Updates;
 
 internal static class PortableUpdater
 {
-    public static async Task PrepareAsync(string source, string hash, bool quiet, CancellationToken token)
+    public static async Task PrepareAsync(string source, string hash, bool quiet, CancellationToken token, bool setup = false)
     {
         // The copied single-file app acts as its own helper, before WPF and the instance mutex.
 #pragma warning disable IL3000 // Intentionally distinguish published single-file apps from loose development builds.
@@ -22,6 +22,7 @@ internal static class PortableUpdater
         File.Copy(target, helper);
         var start = new ProcessStartInfo(helper) { UseShellExecute = false, CreateNoWindow = true, WorkingDirectory = folder };
         foreach (string arg in new[] { "--apply-update", Environment.ProcessId.ToString(), target, hash, quiet ? "--tray" : "--show" }) start.ArgumentList.Add(arg);
+        if (setup) start.ArgumentList.Add("--setup");
         using var process = Process.Start(start) ?? throw new IOException("Could not start the update helper.");
         string ready = Path.Combine(folder, "ready");
         for (int attempt = 0; attempt < 100; attempt++)
@@ -49,7 +50,7 @@ internal static class PortableUpdater
         string folder = AppContext.BaseDirectory;
         try
         {
-            if (args.Length != 5 || !int.TryParse(args[1], out int pid)) return 1;
+            if ((args.Length != 5 && args.Length != 6) || (args.Length == 6 && args[5] != "--setup") || !int.TryParse(args[1], out int pid)) return 1;
             target = Path.GetFullPath(args[2]);
             string source = Path.Combine(folder, "update.exe");
             using var parent = Process.GetProcessById(pid);
@@ -59,8 +60,13 @@ internal static class PortableUpdater
             if (!parent.WaitForExit(60000)) return 1; // Never replace files while the app is still running.
             parentExited = true;
             if (!File.Exists(Path.Combine(folder, "install"))) return 1;
-            Replace(source, target);
-            replaced = true;
+            if (args.Length == 6)
+                RunSetup(source, target);
+            else
+            {
+                Replace(source, target);
+                replaced = true;
+            }
             Start(target, args[4] == "--tray", folder, failed: false);
             return 0;
         }
@@ -72,7 +78,7 @@ internal static class PortableUpdater
                 if (target != null && parentExited)
                 {
                     if (replaced) File.Copy(target + ".previous", target, overwrite: true);
-                    Start(target, args.LastOrDefault() == "--tray", folder, failed: true);
+                    Start(target, args.ElementAtOrDefault(4) == "--tray", folder, failed: true);
                 }
             }
             catch { /* The backup and error log remain available for manual recovery. */ }
@@ -94,6 +100,21 @@ internal static class PortableUpdater
             }
         }
         finally { if (File.Exists(staged)) File.Delete(staged); }
+    }
+
+    internal static ProcessStartInfo SetupStartInfo(string setup, string target)
+    {
+        var start = new ProcessStartInfo(setup) { UseShellExecute = false, CreateNoWindow = true };
+        foreach (string arg in new[] { "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-", "/NORESTARTAPPLICATIONS", "/DIR=" + Path.GetDirectoryName(target) })
+            start.ArgumentList.Add(arg);
+        return start;
+    }
+
+    private static void RunSetup(string setup, string target)
+    {
+        using var process = Process.Start(SetupStartInfo(setup, target)) ?? throw new IOException("Could not start the setup.");
+        process.WaitForExit();
+        if (process.ExitCode != 0) throw new IOException($"Setup failed (code {process.ExitCode}). Please run the setup manually.");
     }
 
     private static void Start(string target, bool quiet, string folder, bool failed)
