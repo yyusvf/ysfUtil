@@ -40,11 +40,18 @@ Name: "german"; MessagesFile: "compiler:Languages\German.isl"
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
+[CustomMessages]
+english.RuntimeDownloading=Downloading Microsoft .NET 8 Desktop Runtime:
+english.RuntimeInstalling=Installing Microsoft .NET 8 Desktop Runtime. Windows may ask for permission.
+english.RuntimeFailed=Microsoft .NET 8 Desktop Runtime (x64) could not be installed. Check your connection and allow the Windows permission prompt, then retry Setup. Alternatively install the Desktop Runtime from https://dotnet.microsoft.com/download/dotnet/8.0.
+german.RuntimeDownloading=Microsoft .NET 8 Desktop Runtime wird heruntergeladen:
+german.RuntimeInstalling=Microsoft .NET 8 Desktop Runtime wird installiert. Windows fragt eventuell nach einer Berechtigung.
+german.RuntimeFailed=Microsoft .NET 8 Desktop Runtime (x64) konnte nicht installiert werden. Pruefe deine Verbindung und erlaube die Windows-Berechtigungsabfrage. Starte Setup danach erneut. Alternativ: https://dotnet.microsoft.com/download/dotnet/8.0.
+
 [Files]
-Source: "..\dist\installer-app\ysfUtil.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\packages\ysfUtil.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\dist\installer-app\licenses\*"; DestDir: "{app}\licenses"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "installation.txt"; DestDir: "{app}"; DestName: "ysfUtil.installation"; Flags: ignoreversion
 
 [Icons]
@@ -59,6 +66,8 @@ Type: files; Name: "{app}\ysfUtil.exe.previous"
 Type: files; Name: "{app}\ysfUtil.exe.incoming"
 
 [Code]
+#include "DesktopRuntime.iss"
+
 const
   RunKey = 'Software\Microsoft\Windows\CurrentVersion\Run';
 

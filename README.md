@@ -6,8 +6,11 @@ Small helpers for Windows 11, on a hotkey. Lives in the notification area.
 
 **[Download Setup (recommended)](https://github.com/yyusvf/ysfUtil/releases/latest/download/ysfUtil-Setup.exe)**
 
-Installs for your Windows user with a Start menu entry and an uninstaller. The .NET runtime
-is included, and no administrator rights are required. Settings survive updates and reinstalls.
+Small installer with a Start menu entry and an uninstaller. It reuses an installed .NET 8
+Desktop Runtime (x64); if missing, it downloads the official Microsoft installer, checks its
+SHA-256 hash and installs the runtime before continuing. Windows may ask for administrator
+permission for the runtime installation. The app itself installs for your Windows user.
+Settings survive updates and reinstalls.
 
 **[Portable EXE (alternative)](https://github.com/yyusvf/ysfUtil/releases/latest/download/ysfUtil.exe)**
 
@@ -78,6 +81,8 @@ its previous visible/tray state. Settings and the user's autostart choice are pr
 A running shutdown timer blocks installation until cancelled. Download failures leave the
 running app intact. The destination folder must be writable. Installed copies never fall
 back to replacing themselves with a portable build when a release has no setup.
+The runtime check also runs during silent setup updates; download or installation failures
+stop Setup before replacing the application. Existing runtime installations are reused offline.
 
 Publishing: set `<Version>` in `ysfUtil.csproj` and push the matching `vX.Y.Z` tag.
 `.github/workflows/release.yml` tests, builds the setup and portable EXE, and presents Setup
@@ -87,8 +92,9 @@ Source-only releases or assets without a GitHub SHA-256 digest offer the release
 
 ## Requirements
 
-Windows x64. Setup includes the runtime; only the portable EXE requires the
-[.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) to be installed separately.
+Windows x64 and [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0).
+Setup downloads it only if missing; portable users install it separately. A missing runtime
+requires an internet connection and permission to install Microsoft's system-wide runtime.
 
 ## Build
 
@@ -105,6 +111,9 @@ To build both downloads, install [Inno Setup 6](https://jrsoftware.org/isinfo.ph
 ```
 
 Output: `dist\packages\ysfUtil-Setup.exe` (recommended), `dist\packages\ysfUtil.exe` (portable).
+The runtime is not bundled. Its versioned Microsoft URL and SHA-256 are pinned in
+`setup/DesktopRuntime.iss`; verify Microsoft's release-metadata SHA-512 and Authenticode
+signature before updating that pin.
 
 Timer and audio logic checks (with a simulated clock, shutdown action and audio devices):
 

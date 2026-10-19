@@ -24,6 +24,9 @@ jobs:
       - name: Build setup and portable app
         shell: pwsh
         run: ./build-release.ps1
+      - name: Test setup runtime detection and failure handling
+        shell: pwsh
+        run: ./Tests/SetupSmoke.ps1
       - name: Create release
         if: github.ref_type == 'tag'
         env:
@@ -33,7 +36,7 @@ jobs:
           $notes = @'
           ## Downloads
 
-          **Recommended: [Download Setup](https://github.com/yyusvf/ysfUtil/releases/download/${{ github.ref_name }}/ysfUtil-Setup.exe)** — installs ysfUtil for your Windows user, includes the .NET runtime, and supports one-click setup updates. No administrator rights required.
+          **Recommended: [Download Setup](https://github.com/yyusvf/ysfUtil/releases/download/${{ github.ref_name }}/ysfUtil-Setup.exe)** — small installer with Start menu entry, uninstaller and one-click updates. Downloads and installs the .NET 8 Desktop Runtime only if missing. Windows may request administrator permission for the runtime installation.
 
           **Alternative: [Portable EXE](https://github.com/yyusvf/ysfUtil/releases/download/${{ github.ref_name }}/ysfUtil.exe)** — no installation, requires the .NET 8 Desktop Runtime. Portable updates remain supported.
 
@@ -44,4 +47,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: ysfUtil-downloads
-          path: dist/packages/*
+          path: |
+            dist/packages/ysfUtil-Setup.exe
+            dist/packages/ysfUtil.exe
+            dist/packages/THIRD-PARTY-NOTICES.txt
