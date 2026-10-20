@@ -11,6 +11,14 @@ internal enum ThemeMode
     Dark,
 }
 
+internal enum NotificationPosition
+{
+    BottomRight,
+    BottomLeft,
+    TopRight,
+    TopLeft,
+}
+
 /// <summary>Settings of a single feature.</summary>
 internal sealed class FeatureSettings
 {
@@ -39,6 +47,7 @@ internal sealed class AppSettings
     };
 
     public ThemeMode Theme { get; set; } = ThemeMode.System;
+    public NotificationPosition NotificationPosition { get; set; } = NotificationPosition.BottomRight;
 
     public int ShutdownMinutes { get; set; } = 30;
     public bool ShutdownTimerEnabled { get; set; } = true;

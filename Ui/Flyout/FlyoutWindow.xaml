@@ -237,6 +237,14 @@
                         <ComboBox Style="{StaticResource ThemedComboBox}"
                                   ItemsSource="{Binding Themes}"
                                   SelectedIndex="{Binding ThemeIndex, Mode=TwoWay}" />
+                        <TextBlock Style="{StaticResource SecondaryText}"
+                                   Text="Notification position" Margin="0,14,0,5" />
+                        <ComboBox Style="{StaticResource ThemedComboBox}"
+                                  ItemsSource="{Binding NotificationPositions}"
+                                  SelectedIndex="{Binding NotificationPositionIndex, Mode=TwoWay}"
+                                  AutomationProperties.Name="Notification position" />
+                        <Button Content="Preview notification" Style="{StaticResource StandardButton}"
+                                Command="{Binding PreviewNotificationCommand}" Margin="0,8,0,0" />
                     </StackPanel>
                 </Border>
 

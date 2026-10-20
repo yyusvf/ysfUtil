@@ -31,7 +31,12 @@ internal sealed class AudioVolumeController(IAudioVolumeBackend backend, AudioVo
     public event Action? Changed;
 
     public void Refresh()
+        => Refresh(notifySettingsChange: false);
+
+    private void Refresh(bool notifySettingsChange)
     {
+        var previous = State;
+        string? previousError = Error;
         try
         {
             State = backend.Read();
@@ -45,7 +50,9 @@ internal sealed class AudioVolumeController(IAudioVolumeBackend backend, AudioVo
             refreshFailed = true;
             Error = "Volume controls unavailable: " + ex.Message;
         }
-        Changed?.Invoke();
+        // Polling and our own endpoint notifications often report identical values. Avoid
+        // rebuilding bindings/layout on the UI thread when nothing actually changed.
+        if (notifySettingsChange || State != previous || Error != previousError) Changed?.Invoke();
     }
 
     public void SetOutputVolume(double percent) => Run(() =>
@@ -71,14 +78,14 @@ internal sealed class AudioVolumeController(IAudioVolumeBackend backend, AudioVo
     {
         Settings.LockMicrophone = enabled;
         requestedTarget = -1;
-        Refresh();
+        Refresh(notifySettingsChange: true);
     }
 
     public void SetEnabled(bool enabled)
     {
         Settings.Enabled = enabled;
         if (!enabled) Settings.LockMicrophone = false;
-        Refresh();
+        Refresh(notifySettingsChange: true);
     }
 
     private void EnforceMicrophone()

@@ -13,6 +13,7 @@ public partial class AudioSwitchBanner : Window
 {
     private readonly DispatcherTimer timeout = new() { Interval = TimeSpan.FromSeconds(1.5) };
     private int revision;
+    internal NotificationPosition Position { get; set; } = NotificationPosition.BottomRight;
     public AudioSwitchBanner()
     {
         InitializeComponent();
@@ -48,6 +49,9 @@ public partial class AudioSwitchBanner : Window
             ? "Find your controls in the tray menu (^)."
             : "Click the tray icon to open your controls.", "\uE73E");
 
+    internal void ShowPreview()
+        => ShowMessage("ysfUtil", "Notifications will appear here.", "\uE73E");
+
     private void ShowMessage(string title, string message, string glyph)
     {
         ++revision;
@@ -63,8 +67,12 @@ public partial class AudioSwitchBanner : Window
         var dpi = VisualTreeHelper.GetDpi(this);
         int marginX = (int)Math.Round(16 * dpi.DpiScaleX);
         int marginY = (int)Math.Round(16 * dpi.DpiScaleY);
-        int left = area.Right - (int)Math.Round(ActualWidth * dpi.DpiScaleX) - marginX;
-        int top = area.Bottom - (int)Math.Round(ActualHeight * dpi.DpiScaleY) - marginY;
+        bool onLeft = Position is NotificationPosition.BottomLeft or NotificationPosition.TopLeft;
+        bool onTop = Position is NotificationPosition.TopLeft or NotificationPosition.TopRight;
+        int left = onLeft ? area.Left + marginX
+            : area.Right - (int)Math.Round(ActualWidth * dpi.DpiScaleX) - marginX;
+        int top = onTop ? area.Top + marginY
+            : area.Bottom - (int)Math.Round(ActualHeight * dpi.DpiScaleY) - marginY;
         SetWindowPos(new WindowInteropHelper(this).Handle, IntPtr.Zero,
             left, top, 0, 0, 0x0015);
         Fade(1, 160);

@@ -23,7 +23,7 @@ public sealed class RevealPanel : Decorator
         panel.IsEnabled = (bool)e.NewValue;
         panel.IsHitTestVisible = (bool)e.NewValue;
         if (!panel.IsLoaded || !SystemParameters.ClientAreaAnimation) return;
-        panel.BeginAnimation(ProgressProperty, new DoubleAnimation(from, to, TimeSpan.FromMilliseconds(170))
+        panel.BeginAnimation(ProgressProperty, new DoubleAnimation(from, to, TimeSpan.FromMilliseconds(110))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }, FillBehavior = FillBehavior.Stop,
         });
@@ -31,8 +31,10 @@ public sealed class RevealPanel : Decorator
     protected override Size MeasureOverride(Size constraint)
     {
         if (Child == null) return new();
+        double progress = (double)GetValue(ProgressProperty);
+        if (progress <= 0) return new();
         Child.Measure(new Size(constraint.Width, double.PositiveInfinity));
-        return new Size(Child.DesiredSize.Width, Child.DesiredSize.Height * (double)GetValue(ProgressProperty));
+        return new Size(Child.DesiredSize.Width, Child.DesiredSize.Height * progress);
     }
     protected override Size ArrangeOverride(Size size)
     {

@@ -56,6 +56,7 @@ internal sealed class AppController : IDisposable
             feature.Run += Run;
         }
         settingsModel = new SettingsViewModel(settings);
+        settingsModel.PreviewNotificationRequested += () => Banner().ShowPreview();
         updater = new UpdateViewModel(settings,
             () => shutdownTimer.IsRunning ? "Cancel the active shutdown timer before updating." : null,
             () => flyout?.IsVisible != true, Exit);
@@ -73,7 +74,10 @@ internal sealed class AppController : IDisposable
             else if (!volumeWatch.IsEnabled) volumeWatch.Start();
         }
         volume.Changed += UpdateVolumeWatch;
-        volumeWatch.Tick += (_, _) => volumeModel.Refresh();
+        volumeWatch.Tick += (_, _) =>
+        {
+            if (flyout?.IsVisible == true || settings.AudioVolume.LockMicrophone) volumeModel.Refresh();
+        };
         UpdateVolumeWatch();
         var dispatcher = Application.Current.Dispatcher;
         volumeBackend.VolumeChanged += () =>
@@ -82,7 +86,7 @@ internal sealed class AppController : IDisposable
             dispatcher.BeginInvoke(() =>
             {
                 Interlocked.Exchange(ref volumeRefreshQueued, 0);
-                if (!disposed) volumeModel.Refresh();
+                if (!disposed && (flyout?.IsVisible == true || settings.AudioVolume.LockMicrophone)) volumeModel.Refresh();
             });
         };
         audioBackend.DevicesChanged += () =>
@@ -99,11 +103,11 @@ internal sealed class AppController : IDisposable
         audio.Switched += device =>
         {
             if (settings.AudioOutput.ShowBanner)
-                (audioBanner ??= new Ui.Views.AudioSwitchBanner()).ShowDevice(device);
+                Banner().ShowDevice(device);
         };
         audio.Failed += message =>
         {
-            if (!disposed) (audioBanner ??= new Ui.Views.AudioSwitchBanner()).ShowError(message);
+            if (!disposed) Banner().ShowError(message);
         };
 
         tray = new TrayController();
@@ -156,9 +160,16 @@ internal sealed class AppController : IDisposable
         {
             Application.Current.Dispatcher.BeginInvoke(() =>
             {
-                if (!disposed) (audioBanner ??= new AudioSwitchBanner()).ShowStartup(firstRun);
+                if (!disposed) Banner().ShowStartup(firstRun);
             });
         }
+    }
+
+    private AudioSwitchBanner Banner()
+    {
+        var banner = audioBanner ??= new AudioSwitchBanner();
+        banner.Position = settings.NotificationPosition;
+        return banner;
     }
 
     private FlyoutWindow Flyout()
@@ -173,8 +184,14 @@ internal sealed class AppController : IDisposable
             {
                 features.ForEach(f => f.Refresh());
                 settingsModel.Refresh();
-                audioModel.Refresh();
-                volumeModel.Refresh();
+                // Paint the panel before querying Windows audio devices, which can be slow
+                // with Bluetooth/virtual drivers. Refresh values once it is on screen.
+                Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
+                {
+                    if (disposed || flyout?.IsVisible != true) return;
+                    audioModel.Refresh();
+                    volumeModel.Refresh();
+                }));
             };
         }
         return flyout;

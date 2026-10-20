@@ -9,6 +9,15 @@ internal static class AudioVolumeChecks
         var controller = new AudioVolumeController(backend, settings);
         controller.Refresh();
         Check(backend.InputWrites == 0 && !settings.LockMicrophone, "Microphone forcing must be opt-in.");
+        int notifications = 0;
+        controller.Changed += () => notifications++;
+        for (int i = 0; i < 20; i++) controller.Refresh();
+        Check(notifications == 0, "Unchanged polling caused redundant UI updates.");
+        backend.Output = 43;
+        controller.Refresh();
+        Check(notifications == 1, "An external volume change did not notify the UI.");
+        controller.SetMicrophoneLock(false);
+        Check(notifications == 2, "A settings change must notify even when endpoint levels stay unchanged.");
         controller.SetOutputVolume(73);
         Check(backend.Output == 73 && backend.Input == 75, "Output slider changed the input.");
         controller.SetInputVolume(66);

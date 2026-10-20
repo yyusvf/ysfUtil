@@ -15,6 +15,7 @@ internal sealed class SettingsViewModel : ViewModelBase
         this.settings = settings;
         autostart = Autostart.IsEnabled();
         OpenSettingsFolderCommand = new RelayCommand(OpenSettingsFolder);
+        PreviewNotificationCommand = new RelayCommand(() => PreviewNotificationRequested?.Invoke());
     }
 
     public bool AutostartEnabled
@@ -64,6 +65,23 @@ internal sealed class SettingsViewModel : ViewModelBase
         "Version " + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?");
 
     public RelayCommand OpenSettingsFolderCommand { get; }
+    public RelayCommand PreviewNotificationCommand { get; }
+    public event Action? PreviewNotificationRequested;
+
+    public IReadOnlyList<string> NotificationPositions { get; } =
+        ["Bottom right", "Bottom left", "Top right", "Top left"];
+
+    public int NotificationPositionIndex
+    {
+        get => (int)settings.NotificationPosition;
+        set
+        {
+            if (value < 0 || value >= NotificationPositions.Count || value == NotificationPositionIndex) return;
+            settings.NotificationPosition = (NotificationPosition)value;
+            settings.Save();
+            Raise();
+        }
+    }
     public UpdateViewModel? Updater { get; set; }
 
     private static void OpenSettingsFolder()

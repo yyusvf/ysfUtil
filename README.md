@@ -25,7 +25,7 @@ are shared, so you can move from portable to Setup without reconfiguring the app
 - **Audio output** (`Ctrl + Alt + A`): cycles through selected playback devices. Pick an
   output directly in the flyout, or choose the devices to cycle through in Settings.
   Communication audio and the short switch banner can be enabled independently.
-  The translucent banner appears at the bottom right, never takes focus and lets clicks pass
+  The translucent banner appears in your selected corner (bottom right by default), never takes focus and lets clicks pass
   through to the app beneath it. Audio errors use the same overlay, not Windows notifications.
   Default-device confirmation waits asynchronously for Windows to finish applying a change.
   Connected devices are detected automatically; disconnected selections are remembered and
@@ -57,8 +57,11 @@ hotkeys, microphone locking and timers keep working. A running shutdown timer ca
 cancelled while folded. The open flyout keeps its position and size during folding.
 Mouse-wheel scrolling eases smoothly, including quick repeated turns and direction changes.
 Dragging the scrollbar and keyboard navigation remain immediate. Motion follows the Windows
-animation preference. Manual startup shows a brief, click-through overlay at the bottom right,
-above the taskbar. Audio messages use the same position; autostart stays silent.
+animation preference. Manual startup shows a brief, click-through overlay. Settings →
+Notification position lets you choose any of the four screen corners and preview the result.
+Audio messages use the same saved position; autostart stays silent.
+Feature headers highlight across their full width. Audio polling avoids redundant UI updates
+and unnecessary background reads; microphone locking continues while the app is in the tray.
 
 Audio switching changes Windows' default playback output. Apps explicitly assigned to a
 particular device can keep using that device; microphone switching, profiles and per-app

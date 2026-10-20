@@ -26,7 +26,7 @@
     <PublishSingleFile>true</PublishSingleFile>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 
-    <Version>0.2.2</Version>
+    <Version>0.2.3</Version>
     <Company>Yusuf Esad Mumcu</Company>
     <Copyright>Copyright (c) 2026 Yusuf Esad Mumcu</Copyright>
     <Product>ysfUtil</Product>

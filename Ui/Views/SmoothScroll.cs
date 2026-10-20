@@ -66,7 +66,7 @@ public static class SmoothScroll
         state.Active = true;
         int revision = ++state.Revision;
         viewer.SetValue(OffsetProperty, from);
-        var animation = new DoubleAnimation(from, target, TimeSpan.FromMilliseconds(180))
+        var animation = new DoubleAnimation(from, target, TimeSpan.FromMilliseconds(100))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
             FillBehavior = FillBehavior.HoldEnd,
