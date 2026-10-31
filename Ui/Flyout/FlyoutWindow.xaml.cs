@@ -52,27 +52,27 @@ public partial class FlyoutWindow : Window
     private int fadeRevision;
     private Screen? placementScreen;
 
-    internal FlyoutWindow(IReadOnlyList<FeatureViewModel> features, SettingsViewModel settings,
-        ShutdownTimerViewModel shutdown, AudioOutputViewModel audio, AudioVolumeViewModel volume)
+    internal FlyoutWindow(Modules.ModuleHost modules, SettingsViewModel settings)
     {
         InitializeComponent();
-        FeatureList.ItemsSource = features;
-        SettingsFeatureList.ItemsSource = features;
         SettingsView.DataContext = settings;
-        ShutdownCard.DataContext = shutdown;
-        ShutdownSetting.DataContext = shutdown;
-        AudioCard.DataContext = audio;
-        AudioSettingsCard.DataContext = audio;
-        VolumeCard.DataContext = volume;
-        VolumeSetting.DataContext = volume;
-        AudioCard.SettingsRequested += ShowAudioSettings;
-        void UpdateEmptyFeatures() => EmptyFeatures.Visibility = features.Any(f => f.IsEnabled) || shutdown.IsEnabled || volume.IsEnabled
-            ? Visibility.Collapsed : Visibility.Visible;
-        foreach (var feature in features)
-            feature.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(feature.IsEnabled)) UpdateEmptyFeatures(); };
-        shutdown.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(shutdown.IsEnabled)) UpdateEmptyFeatures(); };
-        volume.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(volume.IsEnabled)) UpdateEmptyFeatures(); };
-        UpdateEmptyFeatures();
+        ModuleList.ItemsSource = modules.Entries;
+        void ShowModules()
+        {
+            ModuleViews.Children.Clear();
+            ModuleSettingsViews.Children.Clear();
+            foreach (Modules.IModule module in modules.Running)
+            {
+                if (module.FlyoutView is { } view) ModuleViews.Children.Add(view);
+                if (module.SettingsView is { } section) ModuleSettingsViews.Children.Add(section);
+            }
+            UpdateEmpty();
+        }
+        void UpdateEmpty() =>
+            EmptyFeatures.Visibility = modules.HasVisibleContent ? Visibility.Collapsed : Visibility.Visible;
+        modules.Changed += ShowModules;
+        modules.ContentChanged += UpdateEmpty;
+        ShowModules();
 
         outsideWatch.Tick += (_, _) => CloseIfClickedOutside();
         Activated += (_, _) => outsideWatch.Stop();
@@ -252,23 +252,12 @@ public partial class FlyoutWindow : Window
         }
     }
 
-    /// <summary>For the preview: show the settings view.</summary>
-    public void ShowSettingsView() => SwitchView(true);
-
-    public void ShowAudioSettings()
+    /// <summary>Switches to Settings, then runs <paramref name="then"/> once it is laid out.</summary>
+    public void ShowSettings(Action? then = null)
     {
         SwitchView(true);
-        AudioSettingsCard.ExpandOptions();
         UpdateLayout();
-        AudioSettingsCard.BringIntoView();
-    }
-
-    public void ShowShutdownTimer()
-    {
-        SwitchView(false);
-        ShutdownCard.ExpandOptions();
-        UpdateLayout();
-        ShutdownCard.BringIntoView();
+        then?.Invoke();
     }
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)

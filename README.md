@@ -43,6 +43,10 @@ are shared, so you can move from portable to Setup without reconfiguring the app
   Native volume-change notifications restore the level promptly, with a 250 ms fallback check
   while locked. ysfUtil must remain running. Disabling Volume controls stops the lock.
 
+All of the above make up the **Tools** module. Settings → Modules switches whole modules on or
+off; a disabled module is never loaded and its hotkeys are unregistered. Audio Mirror and
+DS5 BT Haptics are listed there as upcoming modules.
+
 Left- or right-click the tray icon to open a flyout where you can turn features on or off,
 change their hotkeys and manage the shutdown timer.
 Enable or disable features in Settings. Disabled features are hidden and their hotkeys are

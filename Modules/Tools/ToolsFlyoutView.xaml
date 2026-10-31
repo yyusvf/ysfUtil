@@ -1,0 +1,111 @@
+<UserControl x:Class="YsfUtil.Modules.Tools.ToolsFlyoutView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:YsfUtil.Ui.ViewModels"
+             xmlns:views="clr-namespace:YsfUtil.Ui.Views">
+
+    <UserControl.Resources>
+        <!-- ══ Feature card ════════════════════════════════════════════════════
+             Top: glyph, name over status. Below: full-width hotkey box and the
+             run-now button. -->
+        <DataTemplate DataType="{x:Type vm:FeatureViewModel}">
+            <Border Margin="0,0,0,6"
+                    Padding="12"
+                    CornerRadius="{StaticResource RadiusCard}"
+                    Background="{DynamicResource CardBrush}"
+                    ToolTip="{Binding Description}">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsAudioOutput}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <Expander Style="{StaticResource FeatureExpander}" views:SectionState.Key="{Binding Feature.Id}"
+                          AutomationProperties.Name="{Binding Name}">
+                <Expander.Header>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border x:Name="GlyphTile"
+                            Grid.Row="0" Grid.Column="0"
+                            Width="34" Height="34"
+                            CornerRadius="{StaticResource RadiusControl}"
+                            Background="{DynamicResource AccentSoftBrush}">
+                        <TextBlock x:Name="GlyphText"
+                                   Text="{Binding Glyph}"
+                                   FontFamily="{StaticResource IconFont}"
+                                   FontSize="16"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center" />
+                    </Border>
+
+                    <StackPanel Grid.Row="0" Grid.Column="1" Margin="12,0,10,0" VerticalAlignment="Center">
+                        <TextBlock x:Name="NameText"
+                                   Style="{StaticResource BodyText}"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding Name}" />
+                        <TextBlock x:Name="StatusText"
+                                   Style="{StaticResource SecondaryText}"
+                                   FontSize="12"
+                                   Margin="0,2,0,0"
+                                   TextTrimming="None"
+                                   TextWrapping="Wrap"
+                                   Text="{Binding StatusLine}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Style="{StaticResource GlyphButton}" Content="&#xE768;"
+                            ToolTip="Run now" AutomationProperties.Name="{Binding Name}" Command="{Binding RunCommand}"
+                            IsEnabled="{Binding IsEnabled}" />
+                </Grid>
+                </Expander.Header>
+                        <views:HotkeyBox
+                                         HorizontalAlignment="Stretch"
+                                         Hotkey="{Binding Hotkey, Mode=TwoWay}"
+                                         HasError="{Binding HasHotkeyError}"
+                                         IsEnabled="{Binding IsEnabled}"
+                                         ToolTip="Click and press a key combination. Esc removes the hotkey." />
+
+                </Expander>
+            </Border>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding IsEnabled}" Value="False">
+                    <Setter TargetName="GlyphTile" Property="Background" Value="{DynamicResource ControlBrush}" />
+                    <Setter TargetName="GlyphText" Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
+                    <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasHotkeyError}" Value="True">
+                    <Setter TargetName="StatusText" Property="Foreground" Value="{DynamicResource ErrorBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <views:AudioOutputCard x:Name="AudioCard">
+            <views:AudioOutputCard.Visibility>
+                <Binding Path="Feature.IsEnabled"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
+            </views:AudioOutputCard.Visibility>
+        </views:AudioOutputCard>
+        <views:AudioVolumeCard x:Name="VolumeCard">
+            <views:AudioVolumeCard.Visibility>
+                <Binding Path="IsEnabled"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
+            </views:AudioVolumeCard.Visibility>
+        </views:AudioVolumeCard>
+        <ItemsControl x:Name="FeatureList" />
+        <views:ShutdownTimerCard x:Name="ShutdownCard">
+            <views:ShutdownTimerCard.Visibility>
+                <Binding Path="IsEnabled"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
+            </views:ShutdownTimerCard.Visibility>
+        </views:ShutdownTimerCard>
+    </StackPanel>
+</UserControl>

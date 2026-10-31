@@ -1,7 +1,6 @@
 using System.Windows;
-using YsfUtil.Features;
-using YsfUtil.Audio;
 using YsfUtil.Hotkeys;
+using YsfUtil.Modules;
 using YsfUtil.Ui;
 using YsfUtil.Ui.Flyout;
 using YsfUtil.Ui.ViewModels;
@@ -11,115 +10,47 @@ using ToolTipIcon = System.Windows.Forms.ToolTipIcon;
 namespace YsfUtil;
 
 /// <summary>
-/// Ties everything together: settings, hotkeys, tray icon and flyout. ysfUtil lives in the
-/// notification area and has no window of its own. The flyout is only created on first use,
-/// so hotkey-only use never loads the UI.
+/// Ties everything together: settings, modules, hotkeys, tray icon and flyout. ysfUtil lives in
+/// the notification area and has no window of its own. The flyout is only created on first use,
+/// so hotkey-only use never loads the UI. What the app actually does lives in modules, see
+/// <see cref="ModuleCatalog"/>.
 /// </summary>
 internal sealed class AppController : IDisposable
 {
     private readonly AppSettings settings;
     private readonly HotkeyHost hotkeys = new();
     private readonly TrayController tray;
-    private readonly List<FeatureViewModel> features;
+    private readonly ModuleHost modules;
     private readonly SettingsViewModel settingsModel;
-    private readonly ShutdownTimer shutdownTimer = new();
-    private readonly ShutdownTimerViewModel shutdownModel;
-    private readonly System.Windows.Threading.DispatcherTimer shutdownTicker =
-        new() { Interval = TimeSpan.FromSeconds(1) };
     private FlyoutWindow? flyout;
-    private readonly WindowsAudioOutputBackend audioBackend = new();
-    private readonly AudioOutputSwitcher audio;
-    private readonly AudioOutputViewModel audioModel;
-    private readonly System.Windows.Threading.DispatcherTimer audioRefresh =
-        new() { Interval = TimeSpan.FromMilliseconds(150) };
-    private Ui.Views.AudioSwitchBanner? audioBanner;
+    private AudioSwitchBanner? audioBanner;
     private bool disposed;
-    private readonly WindowsAudioVolumeBackend volumeBackend = new();
-    private readonly AudioVolumeViewModel volumeModel;
-    private readonly System.Windows.Threading.DispatcherTimer volumeWatch =
-        new() { Interval = TimeSpan.FromSeconds(1) };
-    private int volumeRefreshQueued;
     private readonly UpdateViewModel updater;
 
     public AppController(AppSettings settings, bool startQuietly, bool updateFailed = false, bool showAfterUpdate = false)
     {
         this.settings = settings;
         SectionState.Configure(settings);
-        audio = new AudioOutputSwitcher(audioBackend, settings.AudioOutput);
+        tray = new TrayController();
 
-        features = FeatureCatalog.Create(audio)
-            .Select(f => new FeatureViewModel(f, settings.For(f)))
-            .ToList();
-        foreach (FeatureViewModel feature in features)
+        modules = new ModuleHost(new ModuleContext
         {
-            feature.Changed += OnFeatureChanged;
-            feature.Run += Run;
-        }
+            Settings = settings,
+            IsFlyoutVisible = () => flyout?.IsVisible == true,
+            Banner = Banner,
+            ShowHint = tray.ShowHint,
+            ShowSettings = then => Flyout().ShowSettings(then),
+        });
+        modules.Failed += (name, message) => tray.ShowHint(name, message, ToolTipIcon.Error);
+        modules.Changed += WireFeatures;
+        modules.StartEnabled();
+
         settingsModel = new SettingsViewModel(settings);
         settingsModel.PreviewNotificationRequested += () => Banner().ShowPreview();
-        updater = new UpdateViewModel(settings,
-            () => shutdownTimer.IsRunning ? "Cancel the active shutdown timer before updating." : null,
+        updater = new UpdateViewModel(settings, () => modules.UpdateBlocker,
             () => flyout?.IsVisible != true, Exit);
         settingsModel.Updater = updater;
-        shutdownModel = new ShutdownTimerViewModel(shutdownTimer, settings);
-        audioModel = new AudioOutputViewModel(audio,
-            features.Single(f => f.IsAudioOutput), settings.Save);
-        var volume = new AudioVolumeController(volumeBackend, settings.AudioVolume);
-        volumeModel = new AudioVolumeViewModel(volume, settings.Save);
-        void UpdateVolumeWatch()
-        {
-            var interval = TimeSpan.FromMilliseconds(settings.AudioVolume.LockMicrophone ? 250 : 1000);
-            if (volumeWatch.Interval != interval) volumeWatch.Interval = interval;
-            if (!settings.AudioVolume.Enabled) volumeWatch.Stop();
-            else if (!volumeWatch.IsEnabled) volumeWatch.Start();
-        }
-        volume.Changed += UpdateVolumeWatch;
-        volumeWatch.Tick += (_, _) =>
-        {
-            if (flyout?.IsVisible == true || settings.AudioVolume.LockMicrophone) volumeModel.Refresh();
-        };
-        UpdateVolumeWatch();
-        var dispatcher = Application.Current.Dispatcher;
-        volumeBackend.VolumeChanged += () =>
-        {
-            if (disposed || dispatcher.HasShutdownStarted || Interlocked.Exchange(ref volumeRefreshQueued, 1) != 0) return;
-            dispatcher.BeginInvoke(() =>
-            {
-                Interlocked.Exchange(ref volumeRefreshQueued, 0);
-                if (!disposed && (flyout?.IsVisible == true || settings.AudioVolume.LockMicrophone)) volumeModel.Refresh();
-            });
-        };
-        audioBackend.DevicesChanged += () =>
-        {
-            if (disposed || dispatcher.HasShutdownStarted) return;
-            dispatcher.BeginInvoke(() =>
-            {
-                if (disposed) return;
-                audioRefresh.Stop();
-                audioRefresh.Start();
-            });
-        };
-        audioRefresh.Tick += (_, _) => { audioRefresh.Stop(); audioModel.Refresh(); volumeModel.Refresh(); };
-        audio.Switched += device =>
-        {
-            if (settings.AudioOutput.ShowBanner)
-                Banner().ShowDevice(device);
-        };
-        audio.Failed += message =>
-        {
-            if (!disposed) Banner().ShowError(message);
-        };
 
-        tray = new TrayController();
-        shutdownTimer.EndingSoon += () => tray.ShowHint("Shutdown in less than a minute",
-            "Save your work. Open ysfUtil and click Cancel shutdown to stop the timer.", ToolTipIcon.Warning);
-        shutdownTimer.Failed += message => tray.ShowHint("Shutdown timer", message, ToolTipIcon.Error);
-        shutdownTimer.Changed += () =>
-        {
-            if (shutdownTimer.IsRunning) shutdownTicker.Start();
-            else shutdownTicker.Stop();
-        };
-        shutdownTicker.Tick += (_, _) => shutdownTimer.Tick();
         tray.FlyoutToggleRequested += anchor => Flyout().Toggle(anchor);
         tray.FlyoutRequested += anchor => Flyout().ShowFlyout(anchor);
 
@@ -141,7 +72,6 @@ internal sealed class AppController : IDisposable
             }
         };
 
-        ApplyHotkeys();
         Autostart.Refresh();
         // Start after Application.Run installs WPF's synchronization context, so update
         // continuations (including an automatic restart) stay on the owning UI thread.
@@ -176,25 +106,31 @@ internal sealed class AppController : IDisposable
     {
         if (flyout == null)
         {
-            flyout = new FlyoutWindow(features, settingsModel, shutdownModel, audioModel, volumeModel);
+            flyout = new FlyoutWindow(modules, settingsModel);
             flyout.ExitRequested += Exit;
 
             // State may have changed elsewhere, e.g. in the Windows settings.
             flyout.Opening += () =>
             {
-                features.ForEach(f => f.Refresh());
                 settingsModel.Refresh();
-                // Paint the panel before querying Windows audio devices, which can be slow
-                // with Bluetooth/virtual drivers. Refresh values once it is on screen.
-                Application.Current.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
-                {
-                    if (disposed || flyout?.IsVisible != true) return;
-                    audioModel.Refresh();
-                    volumeModel.Refresh();
-                }));
+                foreach (IModule module in modules.Running) module.OnFlyoutOpening();
             };
         }
         return flyout;
+    }
+
+    /// <summary>A module started or stopped: hook up its features and refresh the hotkeys.</summary>
+    private void WireFeatures()
+    {
+        foreach (FeatureViewModel feature in modules.Features)
+        {
+            // Re-wiring a feature that was already running must not subscribe twice.
+            feature.Changed -= OnFeatureChanged;
+            feature.Changed += OnFeatureChanged;
+            feature.Run -= Run;
+            feature.Run += Run;
+        }
+        ApplyHotkeys();
     }
 
     private void OnFeatureChanged()
@@ -208,7 +144,7 @@ internal sealed class AppController : IDisposable
         hotkeys.UnregisterAll();
         var taken = new Dictionary<Hotkey, FeatureViewModel>();
 
-        foreach (FeatureViewModel feature in features)
+        foreach (FeatureViewModel feature in modules.Features)
         {
             feature.HotkeyError = null;
             if (!feature.IsEnabled || feature.Hotkey is not Hotkey hotkey)
@@ -259,13 +195,8 @@ internal sealed class AppController : IDisposable
     {
         disposed = true;
         updater.Dispose();
-        audioRefresh.Stop();
-        volumeWatch.Stop();
-        volumeBackend.Dispose();
+        modules.Dispose();
         audioBanner?.Close();
-        audioBackend.Dispose();
-        shutdownTicker.Stop();
-        shutdownTimer.Cancel();
         hotkeys.Dispose();
         tray.Dispose();
     }

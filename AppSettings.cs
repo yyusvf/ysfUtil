@@ -60,6 +60,9 @@ internal sealed class AppSettings
     /// <summary>Keyed by feature id, see <see cref="Features.IFeature.Id"/>.</summary>
     public Dictionary<string, FeatureSettings> Features { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>Keyed by module id, see <see cref="Modules.ModuleCatalog"/>.</summary>
+    public Dictionary<string, Modules.ModuleSettings> Modules { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     /// <summary>No settings file yet, so this is the first run.</summary>
     [JsonIgnore]
     public bool IsFirstRun { get; private set; }
@@ -75,6 +78,7 @@ internal sealed class AppSettings
                 {
                     // The case-insensitive comparer is lost during deserialization.
                     loaded.Features = new(loaded.Features, StringComparer.OrdinalIgnoreCase);
+                    loaded.Modules = new(loaded.Modules ?? [], StringComparer.OrdinalIgnoreCase);
                     loaded.AudioOutput ??= new();
                     loaded.AudioOutput.Devices ??= [];
                     loaded.AudioVolume ??= new();
@@ -112,6 +116,17 @@ internal sealed class AppSettings
         {
             settings = new FeatureSettings { Hotkey = feature.DefaultHotkey?.ToString() };
             Features[feature.Id] = settings;
+        }
+        return settings;
+    }
+
+    /// <summary>A module's settings, created with its default state on first access.</summary>
+    public Modules.ModuleSettings For(Modules.ModuleInfo module)
+    {
+        if (!Modules.TryGetValue(module.Id, out Modules.ModuleSettings? settings))
+        {
+            settings = new Modules.ModuleSettings { Enabled = module.EnabledByDefault };
+            Modules[module.Id] = settings;
         }
         return settings;
     }
