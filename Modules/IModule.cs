@@ -16,13 +16,13 @@ internal interface IModule : IDisposable
     /// <summary>Actions with a hotkey. The host registers them and reports conflicts across modules.</summary>
     IReadOnlyList<FeatureViewModel> Features { get; }
 
-    /// <summary>Cards for the flyout's main view, or null. Should stay compact - the tray is shared.</summary>
-    FrameworkElement? FlyoutView { get; }
+    /// <summary>Cards for the flyout's main view, filed under categories. Should stay compact - the tray is shared.</summary>
+    IReadOnlyList<ModuleCard> FlyoutCards { get; }
 
-    /// <summary>The module's section in the flyout's Settings view, or null.</summary>
-    FrameworkElement? SettingsView { get; }
+    /// <summary>Cards for the flyout's Settings view, filed under the same categories.</summary>
+    IReadOnlyList<ModuleCard> SettingsCards { get; }
 
-    /// <summary>Whether <see cref="FlyoutView"/> currently shows anything; drives the empty state.</summary>
+    /// <summary>Whether <see cref="FlyoutCards"/> currently show anything; drives the empty state.</summary>
     bool HasVisibleContent { get; }
 
     /// <summary><see cref="HasVisibleContent"/> changed.</summary>
@@ -33,6 +33,30 @@ internal interface IModule : IDisposable
 
     /// <summary>The flyout is about to show: re-read state that may have changed elsewhere.</summary>
     void OnFlyoutOpening();
+}
+
+/// <summary>
+/// Where a card goes. Cards of every module are grouped by this, so Audio Mirror sits next to the
+/// audio output and volume cards rather than below everything else. Sections appear in this order.
+/// </summary>
+internal enum ModuleCategory
+{
+    /// <summary>Settings only: right below Settings → Modules, without a heading of its own.</summary>
+    Modules,
+    Audio,
+    Desktop,
+    System,
+    Controller,
+}
+
+/// <summary>
+/// A card of a module. <paramref name="Order"/> sorts cards within their category across modules.
+/// <paramref name="IsShown"/> says whether the card shows anything beyond its own Visibility (a
+/// list whose items all hide themselves); the section heading hides when no card is shown.
+/// </summary>
+internal sealed record ModuleCard(ModuleCategory Category, int Order, FrameworkElement View, Func<bool>? IsShown = null)
+{
+    public bool Shows => View.Visibility == Visibility.Visible && (IsShown?.Invoke() ?? true);
 }
 
 /// <summary>What the host offers a running module.</summary>

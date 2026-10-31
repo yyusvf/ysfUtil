@@ -25,9 +25,13 @@ internal sealed class AudioOutputSwitcher(IAudioOutputBackend backend, AudioOutp
     public void Refresh()
     {
         Snapshot = backend.Read();
+        bool Present(AudioOutputPreference saved) => Snapshot.Devices.Any(d => SameId(d.Id, saved.Id));
         foreach (var device in Snapshot.Devices)
         {
-            var saved = Settings.Devices.FirstOrDefault(d => SameId(d.Id, device.Id));
+            var saved = Settings.Devices.FirstOrDefault(d => SameId(d.Id, device.Id))
+                // Windows sometimes gives an output a new endpoint id (driver update, another port,
+                // "2- " in the name). Carry the remembered entry over instead of listing it twice.
+                ?? Settings.Devices.FirstOrDefault(d => SameDevice(d.Name, device.Name) && !Present(d));
             if (saved == null)
             {
                 Settings.Devices.Add(new AudioOutputPreference
@@ -36,10 +40,44 @@ internal sealed class AudioOutputSwitcher(IAudioOutputBackend backend, AudioOutp
                     Included = !Settings.SelectionConfigured && device.Connected,
                 });
             }
-            else saved.Name = device.Name;
+            else
+            {
+                saved.Id = device.Id;
+                saved.Name = device.Name;
+            }
         }
+        // Gone from Windows: forget it unless it is in the cycle and could come back.
+        Settings.Devices.RemoveAll(d => !Present(d)
+            && (!d.Included || Snapshot.Devices.Any(device => SameDevice(device.Name, d.Name))));
         Changed?.Invoke();
     }
+
+    /// <summary>
+    /// The outputs to list, like the Windows sound settings: what Windows knows right now, connected
+    /// first. An unplugged endpoint is left out when a connected one has the same name.
+    /// </summary>
+    public IReadOnlyList<AudioOutputDevice> Listed
+    {
+        get
+        {
+            var connected = Snapshot.Devices.Where(d => d.Connected).ToList();
+            var unplugged = Snapshot.Devices
+                .Where(d => !d.Connected && !connected.Any(c => SameDevice(c.Name, d.Name)))
+                .GroupBy(d => Normalize(d.Name), StringComparer.CurrentCultureIgnoreCase)
+                .Select(g => g.First());
+            return connected.OrderBy(d => d.Name, StringComparer.CurrentCultureIgnoreCase)
+                .Concat(unplugged.OrderBy(d => d.Name, StringComparer.CurrentCultureIgnoreCase))
+                .ToList();
+        }
+    }
+
+    /// <summary>"Kopfhörer (2- JadeAudio)" and "Kopfhörer (JadeAudio)", "4 - TV" and "TV" are one device.</summary>
+    internal static bool SameDevice(string first, string second) =>
+        string.Equals(Normalize(first), Normalize(second), StringComparison.CurrentCultureIgnoreCase);
+
+    private static string Normalize(string name) =>
+        System.Text.RegularExpressions.Regex.Replace(
+            System.Text.RegularExpressions.Regex.Replace(name.Trim(), @"^\d+\s*-\s*", ""), @"\(\d+-\s*", "(");
 
     public Task CycleAsync()
     {

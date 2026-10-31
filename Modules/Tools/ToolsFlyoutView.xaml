@@ -90,22 +90,5 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <StackPanel>
-        <views:AudioOutputCard x:Name="AudioCard">
-            <views:AudioOutputCard.Visibility>
-                <Binding Path="Feature.IsEnabled"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
-            </views:AudioOutputCard.Visibility>
-        </views:AudioOutputCard>
-        <views:AudioVolumeCard x:Name="VolumeCard">
-            <views:AudioVolumeCard.Visibility>
-                <Binding Path="IsEnabled"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
-            </views:AudioVolumeCard.Visibility>
-        </views:AudioVolumeCard>
-        <ItemsControl x:Name="FeatureList" />
-        <views:ShutdownTimerCard x:Name="ShutdownCard">
-            <views:ShutdownTimerCard.Visibility>
-                <Binding Path="IsEnabled"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
-            </views:ShutdownTimerCard.Visibility>
-        </views:ShutdownTimerCard>
-    </StackPanel>
+    <ItemsControl x:Name="FeatureList" />
 </UserControl>

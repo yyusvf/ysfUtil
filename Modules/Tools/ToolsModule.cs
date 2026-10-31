@@ -1,7 +1,9 @@
 using System.Windows;
+using System.Windows.Data;
 using YsfUtil.Audio;
 using YsfUtil.Features;
 using YsfUtil.Ui.ViewModels;
+using YsfUtil.Ui.Views;
 using ToolTipIcon = System.Windows.Forms.ToolTipIcon;
 
 namespace YsfUtil.Modules.Tools;
@@ -27,8 +29,8 @@ internal sealed class ToolsModule : IModule
     private readonly System.Windows.Threading.DispatcherTimer volumeWatch =
         new() { Interval = TimeSpan.FromSeconds(1) };
     private int volumeRefreshQueued;
-    private readonly ToolsFlyoutView flyoutView;
-    private readonly ToolsSettingsView settingsView;
+    private readonly ShutdownTimerCard shutdownCard;
+    private readonly AudioOutputSettingsCard audioSettingsCard;
     private bool disposed;
 
     public ToolsModule(ModuleContext context)
@@ -122,16 +124,36 @@ internal sealed class ToolsModule : IModule
             if (!disposed) context.Banner().ShowError(message);
         };
 
-        flyoutView = new ToolsFlyoutView(features, shutdownModel, audioModel, volumeModel);
-        settingsView = new ToolsSettingsView(features, shutdownModel, audioModel, volumeModel);
-        flyoutView.AudioSettingsRequested += ShowAudioSettings;
+        var audioCard = VisibleWhen(new AudioOutputCard { DataContext = audioModel }, "Feature.IsEnabled");
+        audioCard.SettingsRequested += ShowAudioSettings;
+        shutdownCard = VisibleWhen(new ShutdownTimerCard { DataContext = shutdownModel }, nameof(ShutdownTimerViewModel.IsEnabled));
+        audioSettingsCard = new AudioOutputSettingsCard { DataContext = audioModel };
+        var toggles = features.Where(f => !f.IsAudioOutput).ToList();
+        FlyoutCards =
+        [
+            new(ModuleCategory.Audio, 0, audioCard),
+            new(ModuleCategory.Audio, 10, VisibleWhen(new AudioVolumeCard { DataContext = volumeModel }, nameof(AudioVolumeViewModel.IsEnabled))),
+            new(ModuleCategory.Desktop, 0, new ToolsFlyoutView(toggles), () => toggles.Any(f => f.IsEnabled)),
+            new(ModuleCategory.System, 0, shutdownCard),
+        ];
+        SettingsCards =
+        [
+            new(ModuleCategory.Modules, 0, new ToolsSettingsView(features, shutdownModel, volumeModel)),
+            new(ModuleCategory.Audio, 0, audioSettingsCard),
+        ];
+    }
+
+    private static T VisibleWhen<T>(T view, string path) where T : FrameworkElement
+    {
+        view.SetBinding(UIElement.VisibilityProperty, new Binding(path) { Converter = new System.Windows.Controls.BooleanToVisibilityConverter() });
+        return view;
     }
 
     public IReadOnlyList<FeatureViewModel> Features => features;
 
-    public FrameworkElement FlyoutView => flyoutView;
+    public IReadOnlyList<ModuleCard> FlyoutCards { get; }
 
-    public FrameworkElement SettingsView => settingsView;
+    public IReadOnlyList<ModuleCard> SettingsCards { get; }
 
     public bool HasVisibleContent => features.Any(f => f.IsEnabled) || shutdownModel.IsEnabled || volumeModel.IsEnabled;
 
@@ -154,10 +176,17 @@ internal sealed class ToolsModule : IModule
     }
 
     /// <summary>Opens Settings at the audio output section.</summary>
-    public void ShowAudioSettings() => context.ShowSettings(settingsView.ShowAudioSettings);
+    public void ShowAudioSettings() => context.ShowSettings(() => Reveal(audioSettingsCard.ExpandOptions, audioSettingsCard));
 
     /// <summary>For the preview: open the shutdown timer's options.</summary>
-    public void ShowShutdownTimer() => flyoutView.ShowShutdownTimer();
+    public void ShowShutdownTimer() => Reveal(shutdownCard.ExpandOptions, shutdownCard);
+
+    private static void Reveal(Action expand, FrameworkElement card)
+    {
+        expand();
+        card.UpdateLayout();
+        card.BringIntoView();
+    }
 
     /// <summary>For the preview: start a countdown that never shuts Windows down.</summary>
     public void StartPreviewTimer(int minutes)

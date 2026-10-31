@@ -30,8 +30,9 @@ are shared, so you can move from portable to Setup without reconfiguring the app
   Default-device confirmation waits asynchronously for Windows to finish applying a change.
   Connected devices are detected automatically; disconnected selections are remembered and
   skipped until they reconnect. Devices added after configuring a cycle are opt-in.
-  **Import SoundSwitch devices** reads your existing playback selection without changing
-  SoundSwitch. The hotkey remains configurable in ysfUtil; no microphone settings are imported.
+  The list shows the outputs Windows knows right now. When Windows re-creates an output (new
+  driver, another port, a "2- " in its name), it keeps its place in the cycle instead of
+  appearing twice.
 - **Shutdown timer**: choose 15, 30 or 60 minutes, or enter 1–1440 minutes. Shows a live
   countdown and warns during the final minute. Cancel in the flyout.
   Keep ysfUtil running: quitting cancels the timer. Programs with unsaved work can block shutdown.
@@ -66,6 +67,10 @@ off; a disabled module is never loaded and its hotkeys are unregistered.
 
 Left- or right-click the tray icon to open a flyout where you can turn features on or off,
 change their hotkeys and manage the shutdown timer.
+The flyout groups cards by category rather than by module: **Audio** (output, volume and
+microphone, Audio Mirror), **Desktop** (taskbar, desktop icons), **System** (shutdown timer) and
+**Controller** (DS5). A heading hides when nothing below it is enabled. Settings starts with
+Modules and the Tools switches, followed by the same categories and the app's own settings.
 Enable or disable features in Settings. Disabled features are hidden and their hotkeys are
 unregistered; disabling the shutdown timer also cancels a running countdown.
 On opening, the main view determines the flyout height. Settings uses the same dimensions;

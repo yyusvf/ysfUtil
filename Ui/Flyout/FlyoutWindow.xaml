@@ -2,8 +2,8 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="ysfUtil"
-        Width="360"
-        MinWidth="360" MaxWidth="360"
+        Width="392"
+        MinWidth="392" MaxWidth="392"
         MinHeight="72" MaxHeight="560"
         SizeToContent="Height"
         ResizeMode="NoResize"
@@ -106,7 +106,7 @@
                                            TextWrapping="Wrap" Margin="0,6,0,0" />
                             </StackPanel>
                         </Border>
-                        <!-- Each running module adds its cards here, in catalog order. -->
+                        <!-- The running modules' cards, grouped by category (Audio, Desktop, ...). -->
                         <StackPanel x:Name="ModuleViews" />
                     </StackPanel>
             </ScrollViewer>
@@ -123,7 +123,45 @@
                 </Grid.RowDefinitions>
                 <ScrollViewer x:Name="SettingsScroll" Grid.Row="0" Style="{StaticResource ThemedScrollViewer}">
                 <StackPanel>
+                <!-- Like Windhawk: every module can be switched on and off; a disabled one is never loaded. -->
                 <Border Style="{StaticResource SettingsCard}">
+                    <StackPanel>
+                        <TextBlock Text="Modules" Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,0,0,12" />
+                        <ItemsControl x:Name="ModuleList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,14" ToolTip="{Binding Description}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="GlyphText" Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="16"
+                                                   Foreground="{DynamicResource AccentBrush}" Margin="0,2,12,0" VerticalAlignment="Top" />
+                                        <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                                            <TextBlock x:Name="NameText" Text="{Binding Name}" Style="{StaticResource BodyText}" />
+                                            <TextBlock Text="{Binding Description}" Style="{StaticResource SecondaryText}" FontSize="12"
+                                                       TextWrapping="Wrap" TextTrimming="None" Margin="0,2,0,0" />
+                                        </StackPanel>
+                                        <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Top"
+                                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}" IsEnabled="{Binding IsAvailable}"
+                                                  AutomationProperties.Name="{Binding Name}" />
+                                    </Grid>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsAvailable}" Value="False">
+                                            <Setter TargetName="GlyphText" Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
+                                            <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+                <!-- Module settings by category; the Tools switches come right after the modules. -->
+                <StackPanel x:Name="ModuleSettingsViews" />
+                <TextBlock Text="App" Style="{StaticResource SectionHeader}" Margin="4,20,0,0" />
+                <Border Style="{StaticResource SettingsCard}" Margin="0,8,0,0">
                     <StackPanel>
                         <CheckBox Style="{StaticResource LabeledCheckBox}"
                                   Content="Start with Windows"
@@ -167,42 +205,6 @@
                     </StackPanel>
                 </Border>
 
-                <!-- Like Windhawk: every module can be switched on and off; a disabled one is never loaded. -->
-                <Border Style="{StaticResource SettingsCard}" Margin="0,8,0,0">
-                    <StackPanel>
-                        <TextBlock Text="Modules" Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,0,0,12" />
-                        <ItemsControl x:Name="ModuleList">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Margin="0,0,0,14" ToolTip="{Binding Description}">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock x:Name="GlyphText" Text="{Binding Glyph}" FontFamily="{StaticResource IconFont}" FontSize="16"
-                                                   Foreground="{DynamicResource AccentBrush}" Margin="0,2,12,0" VerticalAlignment="Top" />
-                                        <StackPanel Grid.Column="1" Margin="0,0,10,0">
-                                            <TextBlock x:Name="NameText" Text="{Binding Name}" Style="{StaticResource BodyText}" />
-                                            <TextBlock Text="{Binding Description}" Style="{StaticResource SecondaryText}" FontSize="12"
-                                                       TextWrapping="Wrap" TextTrimming="None" Margin="0,2,0,0" />
-                                        </StackPanel>
-                                        <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Top"
-                                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}" IsEnabled="{Binding IsAvailable}"
-                                                  AutomationProperties.Name="{Binding Name}" />
-                                    </Grid>
-                                    <DataTemplate.Triggers>
-                                        <DataTrigger Binding="{Binding IsAvailable}" Value="False">
-                                            <Setter TargetName="GlyphText" Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
-                                            <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
-                                        </DataTrigger>
-                                    </DataTemplate.Triggers>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
-                </Border>
-                <StackPanel x:Name="ModuleSettingsViews" />
                 </StackPanel>
                 </ScrollViewer>
 

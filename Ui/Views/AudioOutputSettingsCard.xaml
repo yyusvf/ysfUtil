@@ -42,10 +42,7 @@
             </ItemsControl>
             <TextBlock Text="{Binding CycleSummary}" Style="{StaticResource SecondaryText}" Margin="0,6,0,12" />
             <CheckBox Content="Also switch communication audio" IsChecked="{Binding SwitchCommunications}" Style="{StaticResource LabeledCheckBox}" Margin="0,0,0,12" />
-            <CheckBox Content="Show a banner when switching" IsChecked="{Binding ShowBanner}" Style="{StaticResource LabeledCheckBox}" Margin="0,0,0,12" />
-            <Button Content="Import SoundSwitch devices" Style="{StaticResource StandardButton}" Command="{Binding ImportCommand}" />
-            <TextBlock Text="{Binding Message}" Style="{StaticResource SecondaryText}" TextWrapping="Wrap" Margin="0,8,0,0"
-                       Visibility="{Binding HasMessage, Converter={StaticResource VisibleWhen}}" />
+            <CheckBox Content="Show a banner when switching" IsChecked="{Binding ShowBanner}" Style="{StaticResource LabeledCheckBox}" />
         </StackPanel>
         </Expander>
     </Border>

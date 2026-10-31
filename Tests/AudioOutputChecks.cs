@@ -42,17 +42,25 @@ internal static class AudioOutputChecks
         audio.Refresh();
         Check(settings.Devices.Any(d => d.Id == "headphones"), "Unplugging lost the stored selection.");
 
-        var imported = SoundSwitchImport.Parse("""
-            {"SelectedDevices":[
-              {"Type":0,"Id":"speakers","Name":"Desk speakers"},
-              {"Type":1,"Id":"mic","Name":"Microphone"},
-              {"Type":0,"Id":"speakers","Name":"Duplicate"},
-              {"Type":0,"Id":"headphones","Name":"Headphones"},
-              {"Type":0,"Id":""}, {"Type":99999999999999,"Id":"unknown"}
-            ]}
-            """);
-        Check(imported.Count == 2 && imported.All(d => d.Included), "Import did not filter microphones, duplicates or invalid entries.");
-        await ExpectFailure(() => { SoundSwitchImport.Parse("{\"SelectedDevices\":[]}"); return Task.CompletedTask; });
+        // Windows re-creates an endpoint with a new id and "2- " in its name: one entry, selection kept.
+        var renamedBackend = new FakeBackend();
+        var renamedSettings = new AudioOutputSettings();
+        var renamed = new AudioOutputSwitcher(renamedBackend, renamedSettings, _ => Task.CompletedTask);
+        renamed.Refresh();
+        renamedSettings.SelectionConfigured = true;
+        renamedBackend.RenamedHeadphones = true;
+        renamed.Refresh();
+        Check(renamedSettings.Devices.Count(d => AudioOutputSwitcher.SameDevice(d.Name, "Headphones (USB)")) == 1
+            && renamedSettings.Devices.Single(d => d.Id == "headphones-2").Included, "A re-created endpoint was listed twice or lost its selection.");
+        // An unplugged twin of a connected output is not listed; a gone, unselected output is forgotten.
+        renamedBackend.StaleTwin = true;
+        renamed.Refresh();
+        Check(renamed.Listed.Count(d => AudioOutputSwitcher.SameDevice(d.Name, "Speakers")) == 1, "An unplugged duplicate was listed.");
+        renamedBackend.StaleTwin = false;
+        renamedSettings.Devices.Single(d => d.Id == "offline").Included = false;
+        renamedBackend.OfflineGone = true;
+        renamed.Refresh();
+        Check(renamedSettings.Devices.All(d => d.Id != "offline" && d.Id != "speakers-old"), "Gone outputs were kept without being selected.");
         var delayed = new FakeBackend { DelayedReads = 3 };
         int waits = 0, delayedNotifications = 0;
         var delayedAudio = new AudioOutputSwitcher(delayed, new(), _ => { waits++; return Task.CompletedTask; });
@@ -83,7 +91,7 @@ internal static class AudioOutputChecks
         busyBackend.Current = "HEADPHONES";
         busyAudio.Refresh();
         Check(busyAudio.Current?.Id == "headphones", "Endpoint IDs must be compared case-insensitively.");
-        Console.WriteLine("PASS: audio cycling, wraparound, disconnection, direct selection, communication option, errors, retry, remembered devices and SoundSwitch import.");
+        Console.WriteLine("PASS: audio cycling, wraparound, disconnection, direct selection, communication option, errors, retry, remembered devices, re-created endpoints and duplicates.");
         Console.WriteLine("PASS: delayed confirmation, real rejection, nonblocking wait and rapid repeated hotkeys.");
     }
 
@@ -98,7 +106,7 @@ internal static class AudioOutputChecks
     private sealed class FakeBackend : IAudioOutputBackend
     {
         public string Current = "speakers";
-        public bool Communications, DisconnectHeadphones, NewDevice, Fail;
+        public bool Communications, DisconnectHeadphones, NewDevice, Fail, RenamedHeadphones, StaleTwin, OfflineGone;
         public int Switches;
         public int DelayedReads;
         public bool NeverApply;
@@ -113,9 +121,12 @@ internal static class AudioOutputChecks
             }
             var devices = new List<AudioOutputDevice>
             {
-                new("speakers", "Speakers", true), new("headphones", "Headphones", !DisconnectHeadphones),
-                new("offline", "Disconnected display", false),
+                new("speakers", "Speakers", true),
+                RenamedHeadphones ? new("headphones-2", "Headphones (2- USB)", !DisconnectHeadphones)
+                    : new("headphones", "Headphones (USB)", !DisconnectHeadphones),
             };
+            if (!OfflineGone) devices.Add(new("offline", "Disconnected display", false));
+            if (StaleTwin) devices.Add(new("speakers-old", "Speakers", false));
             if (NewDevice) devices.Add(new("new", "New output", true));
             return new(devices, Current);
         }

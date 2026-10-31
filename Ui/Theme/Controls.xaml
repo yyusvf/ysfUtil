@@ -15,6 +15,13 @@
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
+    <!-- Heading above a group of cards (Audio, Desktop, ...). -->
+    <Style x:Key="SectionHeader" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="{StaticResource FontSizeBody}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+    </Style>
+
     <Style x:Key="SecondaryText" TargetType="TextBlock" BasedOn="{StaticResource BodyText}">
         <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
         <Setter Property="Foreground" Value="{DynamicResource TextTertiaryBrush}" />

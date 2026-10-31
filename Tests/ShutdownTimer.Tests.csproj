@@ -12,7 +12,6 @@
     <Compile Include="../ShutdownTimer.cs" Link="ShutdownTimer.cs" />
     <Compile Include="../Audio/AudioOutputSettings.cs" Link="AudioOutputSettings.cs" />
     <Compile Include="../Audio/AudioOutputSwitcher.cs" Link="AudioOutputSwitcher.cs" />
-    <Compile Include="../Audio/SoundSwitchImport.cs" Link="SoundSwitchImport.cs" />
     <Compile Include="../Audio/AudioVolumeController.cs" Link="AudioVolumeController.cs" />
   </ItemGroup>
 </Project>

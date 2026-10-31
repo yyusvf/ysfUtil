@@ -147,11 +147,13 @@ internal static class Program
         {
             string[] parts = arg.Split(':', 2);
             if (parts.Length < 2 || modules.Find(parts[1]) is not { } module) continue;
-            if (parts[0] == "module") flyout.Loaded += (_, _) => module.FlyoutView?.BringIntoView();
-            if (parts[0] == "module-settings") flyout.Loaded += (_, _) => flyout.ShowSettings(() => module.SettingsView?.BringIntoView());
+            if (parts[0] == "module") flyout.Loaded += (_, _) => module.FlyoutCards.FirstOrDefault()?.View.BringIntoView();
+            if (parts[0] == "module-settings") flyout.Loaded += (_, _) => flyout.ShowSettings(() => module.SettingsCards.LastOrDefault()?.View.BringIntoView());
         }
 
-        DesignRender.Capture(flyout, path, 360, 0);
+        // tall: the whole content, without the flyout's height limit.
+        if (args.Any(a => string.Equals(a, "tall", StringComparison.OrdinalIgnoreCase))) flyout.MaxHeight = 2400;
+        DesignRender.Capture(flyout, path, (int)flyout.Width, 0);
     }
 #endif
 }

@@ -49,6 +49,9 @@ public partial class FlyoutWindow : Window
     private IntPtr openedFrom;
     private bool hiding;
 
+    private static readonly System.ComponentModel.DependencyPropertyDescriptor VisibilityWatch =
+        System.ComponentModel.DependencyPropertyDescriptor.FromProperty(UIElement.VisibilityProperty, typeof(UIElement));
+
     /// <summary>A dialog of the flyout is open: losing focus to it must not close the flyout.</summary>
     private bool pinned;
     private bool isTrayPositioned;
@@ -60,21 +63,48 @@ public partial class FlyoutWindow : Window
         InitializeComponent();
         SettingsView.DataContext = settings;
         ModuleList.ItemsSource = modules.Entries;
+        var sections = new List<(FrameworkElement Header, List<Modules.ModuleCard> Cards)>();
         void ShowModules()
         {
-            ModuleViews.Children.Clear();
-            ModuleSettingsViews.Children.Clear();
-            foreach (Modules.IModule module in modules.Running)
-            {
-                if (module.FlyoutView is { } view) ModuleViews.Children.Add(view);
-                if (module.SettingsView is { } section) ModuleSettingsViews.Children.Add(section);
-            }
-            UpdateEmpty();
+            foreach (var (_, cards) in sections)
+                cards.ForEach(card => VisibilityWatch.RemoveValueChanged(card.View, OnCardVisibility));
+            sections.Clear();
+            Fill(ModuleViews, modules.Running.SelectMany(m => m.FlyoutCards), new Thickness(4, 12, 0, 6), new Thickness(4, 0, 0, 6));
+            Fill(ModuleSettingsViews, modules.Running.SelectMany(m => m.SettingsCards), new Thickness(4, 20, 0, 0), new Thickness(4, 20, 0, 0));
+            UpdateSections();
         }
-        void UpdateEmpty() =>
+        void Fill(System.Windows.Controls.Panel panel, IEnumerable<Modules.ModuleCard> all, Thickness margin, Thickness first)
+        {
+            panel.Children.Clear();
+            foreach (var group in all.GroupBy(c => c.Category).OrderBy(g => g.Key))
+            {
+                var cards = group.OrderBy(c => c.Order).ToList();
+                var header = new System.Windows.Controls.TextBlock
+                {
+                    Text = group.Key.ToString(),
+                    Style = (Style)FindResource("SectionHeader"),
+                    Margin = panel.Children.Count == 0 ? first : margin,
+                };
+                // The Tools switches belong to the Modules card above them.
+                if (group.Key != Modules.ModuleCategory.Modules) panel.Children.Add(header);
+                cards.ForEach(card =>
+                {
+                    panel.Children.Add(card.View);
+                    VisibilityWatch.AddValueChanged(card.View, OnCardVisibility);
+                });
+                sections.Add((header, cards));
+            }
+        }
+        // A heading shows while at least one card below it does.
+        void UpdateSections()
+        {
+            foreach (var (header, cards) in sections)
+                header.Visibility = cards.Any(c => c.Shows) ? Visibility.Visible : Visibility.Collapsed;
             EmptyFeatures.Visibility = modules.HasVisibleContent ? Visibility.Collapsed : Visibility.Visible;
+        }
+        void OnCardVisibility(object? sender, EventArgs e) => UpdateSections();
         modules.Changed += ShowModules;
-        modules.ContentChanged += UpdateEmpty;
+        modules.ContentChanged += UpdateSections;
         ShowModules();
 
         outsideWatch.Tick += (_, _) => CloseIfClickedOutside();

@@ -3,26 +3,12 @@ using YsfUtil.Ui.ViewModels;
 
 namespace YsfUtil.Modules.Tools;
 
+/// <summary>The hotkey actions without a card of their own: taskbar and desktop icons.</summary>
 public partial class ToolsFlyoutView : UserControl
 {
-    internal ToolsFlyoutView(IReadOnlyList<FeatureViewModel> features, ShutdownTimerViewModel shutdown,
-        AudioOutputViewModel audio, AudioVolumeViewModel volume)
+    internal ToolsFlyoutView(IEnumerable<FeatureViewModel> features)
     {
         InitializeComponent();
         FeatureList.ItemsSource = features;
-        ShutdownCard.DataContext = shutdown;
-        AudioCard.DataContext = audio;
-        VolumeCard.DataContext = volume;
-        AudioCard.SettingsRequested += () => AudioSettingsRequested?.Invoke();
-    }
-
-    /// <summary>The audio card's settings button: open the audio section in Settings.</summary>
-    internal event Action? AudioSettingsRequested;
-
-    public void ShowShutdownTimer()
-    {
-        ShutdownCard.ExpandOptions();
-        UpdateLayout();
-        ShutdownCard.BringIntoView();
     }
 }

@@ -107,9 +107,9 @@ internal sealed class Ds5Module : ViewModelBase, IModule
 
     public IReadOnlyList<FeatureViewModel> Features => [];
 
-    public FrameworkElement FlyoutView => flyoutView;
+    public IReadOnlyList<ModuleCard> FlyoutCards => [new(ModuleCategory.Controller, 0, flyoutView)];
 
-    public FrameworkElement SettingsView => settingsView;
+    public IReadOnlyList<ModuleCard> SettingsCards => [new(ModuleCategory.Controller, 0, settingsView)];
 
     public bool HasVisibleContent => true;
 

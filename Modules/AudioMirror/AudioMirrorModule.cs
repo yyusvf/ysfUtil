@@ -93,9 +93,9 @@ internal sealed class AudioMirrorModule : ViewModelBase, IModule
 
     public IReadOnlyList<FeatureViewModel> Features => [toggleFeature];
 
-    public FrameworkElement FlyoutView => flyoutView;
+    public IReadOnlyList<ModuleCard> FlyoutCards => [new(ModuleCategory.Audio, 30, flyoutView)];
 
-    public FrameworkElement SettingsView => settingsView;
+    public IReadOnlyList<ModuleCard> SettingsCards => [new(ModuleCategory.Audio, 30, settingsView)];
 
     public bool HasVisibleContent => true;
 

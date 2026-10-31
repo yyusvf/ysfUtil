@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.IO;
 using YsfUtil.Audio;
 
 namespace YsfUtil.Ui.ViewModels;
@@ -47,7 +46,6 @@ internal sealed class AudioOutputViewModel : ViewModelBase
     private readonly Action save;
     private bool updating;
     private AudioOutputDeviceViewModel? selectedOutput;
-    private string? message;
     private string? refreshError;
 
     public AudioOutputViewModel(AudioOutputSwitcher audio, FeatureViewModel feature, Action save)
@@ -57,7 +55,6 @@ internal sealed class AudioOutputViewModel : ViewModelBase
         Feature = feature;
         NextCommand = new RelayCommand(() => { if (Feature.IsEnabled) Feature.RunCommand.Execute(null); });
         RefreshCommand = new RelayCommand(Refresh);
-        ImportCommand = new RelayCommand(Import);
         audio.Changed += Update;
         Refresh();
     }
@@ -73,11 +70,8 @@ internal sealed class AudioOutputViewModel : ViewModelBase
         : $"{Devices.Count(d => d.Included && d.Connected)} outputs in hotkey cycle";
     public string? Error => refreshError ?? audio.Error;
     public bool HasError => !string.IsNullOrEmpty(Error);
-    public string? Message { get => message; private set { Set(ref message, value); Raise(nameof(HasMessage)); } }
-    public bool HasMessage => !string.IsNullOrEmpty(Message);
     public RelayCommand NextCommand { get; }
     public RelayCommand RefreshCommand { get; }
-    public RelayCommand ImportCommand { get; }
     public bool SwitchCommunications
     {
         get => audio.Settings.SwitchCommunications;
@@ -116,9 +110,17 @@ internal sealed class AudioOutputViewModel : ViewModelBase
         updating = true;
         try
         {
-            foreach (var preference in audio.Settings.Devices)
+            // Only what Windows lists right now; remembered outputs that are gone stay in the
+            // settings for the cycle but don't clutter the list.
+            var listed = audio.Listed;
+            foreach (var row in Devices.Where(r => !listed.Any(d => string.Equals(d.Id, r.Id, StringComparison.OrdinalIgnoreCase))).ToList())
+                Devices.Remove(row);
+            for (int index = 0; index < listed.Count; index++)
             {
-                var row = Devices.FirstOrDefault(d => string.Equals(d.Id, preference.Id, StringComparison.OrdinalIgnoreCase));
+                var device = listed[index];
+                var preference = audio.Settings.Devices.FirstOrDefault(p => string.Equals(p.Id, device.Id, StringComparison.OrdinalIgnoreCase));
+                if (preference == null) continue;
+                var row = Devices.FirstOrDefault(d => string.Equals(d.Id, device.Id, StringComparison.OrdinalIgnoreCase));
                 if (row == null)
                 {
                     row = new AudioOutputDeviceViewModel(preference, () =>
@@ -126,9 +128,13 @@ internal sealed class AudioOutputViewModel : ViewModelBase
                         audio.Settings.SelectionConfigured = true;
                         save(); Raise(nameof(CycleSummary));
                     });
-                    Devices.Add(row);
+                    Devices.Insert(Math.Min(index, Devices.Count), row);
                 }
-                row.Update(audio.Snapshot.Devices.FirstOrDefault(d => string.Equals(d.Id, row.Id, StringComparison.OrdinalIgnoreCase)), audio.Snapshot.DefaultId);
+                else if (Devices.IndexOf(row) is int at && at != index && index < Devices.Count)
+                {
+                    Devices.Move(at, index);
+                }
+                row.Update(device, audio.Snapshot.DefaultId);
             }
             // Keep collection items stable so device notifications do not steal keyboard focus.
             var connected = Devices.Where(d => d.Connected).ToList();
@@ -141,29 +147,5 @@ internal sealed class AudioOutputViewModel : ViewModelBase
         Raise(nameof(CurrentName)); Raise(nameof(CurrentGlyph)); Raise(nameof(HasOutputs));
         Raise(nameof(CanSwitch));
         Raise(nameof(CycleSummary)); Raise(nameof(Error)); Raise(nameof(HasError));
-    }
-
-    private void Import()
-    {
-        try
-        {
-            string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "SoundSwitch", "SoundSwitchConfiguration.json");
-            var imported = SoundSwitchImport.Parse(File.ReadAllText(path));
-            foreach (var saved in audio.Settings.Devices) saved.Included = false;
-            foreach (var entry in imported)
-            {
-                var saved = audio.Settings.Devices.FirstOrDefault(d => d.Id == entry.Id);
-                if (saved == null) audio.Settings.Devices.Add(entry);
-                else saved.Included = true;
-            }
-            audio.Settings.SelectionConfigured = true;
-            save(); Refresh();
-            Message = $"Imported {imported.Count} outputs from SoundSwitch.";
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException or InvalidOperationException)
-        {
-            Message = "Could not import: " + ex.Message;
-        }
     }
 }
