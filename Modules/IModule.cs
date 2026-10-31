@@ -50,6 +50,9 @@ internal sealed class ModuleContext
     /// <summary>Switches the flyout to Settings, then runs the callback once it is laid out.</summary>
     public required Action<Action?> ShowSettings { get; init; }
 
+    /// <summary>Shows a file dialog over the flyout without closing it. The chosen path, or null.</summary>
+    public required Func<Microsoft.Win32.OpenFileDialog, string?> PickFile { get; init; }
+
     /// <summary>Rendering a preview: never touch Windows (shutdown, saved microphone level, ...).</summary>
     public bool IsPreview { get; init; }
 }

@@ -7,6 +7,28 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
+        // The DS5 bridge runs in a child process of ysfUtil, see Modules.DS5.BridgeProcess.
+        if (args.Contains(Modules.DS5.BridgeProcess.Argument))
+        {
+            Environment.ExitCode = Modules.DS5.BridgeProcess.RunChild(args);
+            return;
+        }
+        // Elevated helpers started by the DS5 module's driver setup.
+        if (args.Contains(Modules.DS5.Dependencies.HidHideSetupArgument))
+        {
+            Environment.ExitCode = Modules.DS5.Dependencies.RunElevatedHidHideSetup();
+            return;
+        }
+        if (args.Contains(Modules.DS5.Dependencies.HidHideAppsArgument))
+        {
+            Environment.ExitCode = Modules.DS5.Dependencies.RunElevatedHidHideApps(args);
+            return;
+        }
+        if (args.Contains(Modules.DS5.Dependencies.HidHideUndoArgument))
+        {
+            Environment.ExitCode = Modules.DS5.Dependencies.RunElevatedHidHideUndo();
+            return;
+        }
         if (Updates.PortableUpdater.IsHelper(args))
         {
             Environment.ExitCode = Updates.PortableUpdater.Apply(args);
@@ -22,7 +44,7 @@ internal static class Program
         }
 
         // Renders the flyout to a PNG without putting it on screen:
-        // --render <file.png> [light|dark] [settings|audio-settings|modules|timer|timer-running] [all-modules] [mirror|mirror-settings]
+        // --render <file.png> [light|dark] [settings|audio-settings|modules|timer|timer-running] [all-modules] [module:<id>|module-settings:<id>]
         int renderAt = Array.FindIndex(args, a => string.Equals(a, "--render", StringComparison.OrdinalIgnoreCase));
         if (renderAt >= 0 && renderAt + 1 < args.Length)
         {
@@ -92,6 +114,7 @@ internal static class Program
             Banner = () => new Ui.Views.AudioSwitchBanner(),
             ShowHint = (_, _, _) => { },
             ShowSettings = then => flyout?.ShowSettings(then),
+            PickFile = _ => null,
             IsPreview = true,
         });
         modules.StartEnabled();
@@ -119,14 +142,13 @@ internal static class Program
         {
             tools?.ShowShutdownTimer();
         }
-        var mirror = modules.Running.OfType<Modules.AudioMirror.AudioMirrorModule>().FirstOrDefault();
-        if (mirror != null && args.Any(a => string.Equals(a, "mirror", StringComparison.OrdinalIgnoreCase)))
+        // module:<id> scrolls to that module's card, module-settings:<id> to its settings.
+        foreach (string arg in args)
         {
-            flyout.Loaded += (_, _) => mirror.FlyoutView.BringIntoView();
-        }
-        if (mirror != null && args.Any(a => string.Equals(a, "mirror-settings", StringComparison.OrdinalIgnoreCase)))
-        {
-            flyout.Loaded += (_, _) => flyout.ShowSettings(mirror.SettingsView.BringIntoView);
+            string[] parts = arg.Split(':', 2);
+            if (parts.Length < 2 || modules.Find(parts[1]) is not { } module) continue;
+            if (parts[0] == "module") flyout.Loaded += (_, _) => module.FlyoutView?.BringIntoView();
+            if (parts[0] == "module-settings") flyout.Loaded += (_, _) => flyout.ShowSettings(() => module.SettingsView?.BringIntoView());
         }
 
         DesignRender.Capture(flyout, path, 360, 0);

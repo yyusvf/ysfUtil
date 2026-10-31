@@ -38,6 +38,9 @@ internal sealed class ModuleHost : IDisposable
     public IEnumerable<IModule> Running =>
         Entries.Select(e => running.GetValueOrDefault(e.Info.Id)).OfType<IModule>();
 
+    /// <summary>The running module with this id, or null.</summary>
+    public IModule? Find(string id) => running.GetValueOrDefault(id);
+
     public IEnumerable<FeatureViewModel> Features => Running.SelectMany(m => m.Features);
 
     public bool HasVisibleContent => Running.Any(m => m.HasVisibleContent);

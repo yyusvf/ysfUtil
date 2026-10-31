@@ -53,7 +53,16 @@ off; a disabled module is never loaded and its hotkeys are unregistered.
   over the standalone Audio Mirror's devices, volumes, app mix and hotkey; quit the standalone
   app so the sound isn't mirrored twice.
 
-DS5 BT Haptics is listed in Settings → Modules as an upcoming module.
+- **DS5 BT Haptics** (module, off by default): DualSense HD haptics, adaptive triggers and light
+  bar over Bluetooth, by presenting a virtual wired DualSense via usbip-win2. The flyout card
+  walks through the driver setup one step at a time (usbip-win2, HidHide, hiding the controller),
+  shows controller, virtual controller and haptics status, and has a test button. The bridge
+  runs in its own ysfUtil process, so a problem there never takes the tray down; it restarts on
+  its own and turns off after repeated failures. It pauses while a listed game with its own
+  Bluetooth haptics runs. Settings → DS5 BT Haptics holds strength, latency, the games list, the
+  log, and **Make controller visible to games** to undo the HidHide setup. On first start the
+  module takes over the standalone app's settings; quit the standalone app first, and set up
+  HidHide once more, since it now has to allow ysfUtil.
 
 Left- or right-click the tray icon to open a flyout where you can turn features on or off,
 change their hotkeys and manage the shutdown timer.

@@ -40,6 +40,7 @@ internal sealed class AppController : IDisposable
             Banner = Banner,
             ShowHint = tray.ShowHint,
             ShowSettings = then => Flyout().ShowSettings(then),
+            PickFile = dialog => Flyout().PickFile(dialog),
         });
         modules.Failed += (name, message) => tray.ShowHint(name, message, ToolTipIcon.Error);
         modules.Changed += WireFeatures;

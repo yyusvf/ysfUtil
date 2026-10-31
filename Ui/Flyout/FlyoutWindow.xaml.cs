@@ -48,6 +48,9 @@ public partial class FlyoutWindow : Window
     /// </summary>
     private IntPtr openedFrom;
     private bool hiding;
+
+    /// <summary>A dialog of the flyout is open: losing focus to it must not close the flyout.</summary>
+    private bool pinned;
     private bool isTrayPositioned;
     private int fadeRevision;
     private Screen? placementScreen;
@@ -85,7 +88,10 @@ public partial class FlyoutWindow : Window
         ThemeManager.Changed += ApplyWindowEffects;
         Loaded += (_, _) => LockContentHeight();
 
-        Deactivated += (_, _) => HideFlyout();
+        Deactivated += (_, _) =>
+        {
+            if (!pinned) HideFlyout();
+        };
         DpiChanged += (_, _) =>
         {
             if (IsVisible && isTrayPositioned)
@@ -239,7 +245,7 @@ public partial class FlyoutWindow : Window
     /// <summary>Open but inactive: close once neither the opening window nor the flyout is in front.</summary>
     private void CloseIfClickedOutside()
     {
-        if (IsActive)
+        if (IsActive || pinned)
         {
             outsideWatch.Stop();
             return;
@@ -258,6 +264,21 @@ public partial class FlyoutWindow : Window
         SwitchView(true);
         UpdateLayout();
         then?.Invoke();
+    }
+
+    /// <summary>Shows <paramref name="dialog"/> owned by the flyout, which stays open meanwhile.</summary>
+    public string? PickFile(Microsoft.Win32.OpenFileDialog dialog)
+    {
+        pinned = true;
+        try
+        {
+            return dialog.ShowDialog(this) == true ? dialog.FileName : null;
+        }
+        finally
+        {
+            pinned = false;
+            Activate();
+        }
     }
 
     protected override void OnPreviewKeyDown(KeyEventArgs e)

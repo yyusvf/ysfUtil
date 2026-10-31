@@ -56,6 +56,9 @@ internal sealed class AppSettings
 
     /// <summary>Null until the Audio Mirror module first starts and imports the standalone app's settings.</summary>
     public Modules.AudioMirror.AudioMirrorSettings? AudioMirror { get; set; }
+
+    /// <summary>Null until the DS5 module first starts and imports the standalone app's settings.</summary>
+    public Modules.DS5.Ds5Settings? Ds5 { get; set; }
     public Updates.UpdateMode Updates { get; set; } = YsfUtil.Updates.UpdateMode.Notify;
     public DateTime LastUpdateCheckUtc { get; set; }
     public HashSet<string> CollapsedSections { get; set; } = new(StringComparer.OrdinalIgnoreCase);

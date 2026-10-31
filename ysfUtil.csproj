@@ -12,6 +12,8 @@
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
 
     <Nullable>enable</Nullable>
+    <!-- The DS5 bridge parses HID and USB/IP packets with pointers. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <AssemblyName>ysfUtil</AssemblyName>
