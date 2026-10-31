@@ -22,7 +22,7 @@ internal static class Program
         }
 
         // Renders the flyout to a PNG without putting it on screen:
-        // --render <file.png> [light|dark] [settings|audio-settings|modules|timer|timer-running]
+        // --render <file.png> [light|dark] [settings|audio-settings|modules|timer|timer-running] [all-modules] [mirror|mirror-settings]
         int renderAt = Array.FindIndex(args, a => string.Equals(a, "--render", StringComparison.OrdinalIgnoreCase));
         if (renderAt >= 0 && renderAt + 1 < args.Length)
         {
@@ -79,6 +79,10 @@ internal static class Program
 
         AppSettings settings = AppSettings.Load();
         Ui.Views.SectionState.Configure(settings, save: false);
+        if (args.Any(a => string.Equals(a, "all-modules", StringComparison.OrdinalIgnoreCase)))
+        {
+            foreach (var module in Modules.ModuleCatalog.All) settings.For(module).Enabled = true;
+        }
         Ui.Flyout.FlyoutWindow? flyout = null;
         // Preview modules never shut Windows down, enforce a microphone level or save settings.
         using var modules = new Modules.ModuleHost(new Modules.ModuleContext
@@ -114,6 +118,15 @@ internal static class Program
         if (args.Any(a => string.Equals(a, "timer", StringComparison.OrdinalIgnoreCase)))
         {
             tools?.ShowShutdownTimer();
+        }
+        var mirror = modules.Running.OfType<Modules.AudioMirror.AudioMirrorModule>().FirstOrDefault();
+        if (mirror != null && args.Any(a => string.Equals(a, "mirror", StringComparison.OrdinalIgnoreCase)))
+        {
+            flyout.Loaded += (_, _) => mirror.FlyoutView.BringIntoView();
+        }
+        if (mirror != null && args.Any(a => string.Equals(a, "mirror-settings", StringComparison.OrdinalIgnoreCase)))
+        {
+            flyout.Loaded += (_, _) => flyout.ShowSettings(mirror.SettingsView.BringIntoView);
         }
 
         DesignRender.Capture(flyout, path, 360, 0);

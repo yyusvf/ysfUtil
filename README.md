@@ -44,8 +44,16 @@ are shared, so you can move from portable to Setup without reconfiguring the app
   while locked. ysfUtil must remain running. Disabling Volume controls stops the lock.
 
 All of the above make up the **Tools** module. Settings → Modules switches whole modules on or
-off; a disabled module is never loaded and its hotkeys are unregistered. Audio Mirror and
-DS5 BT Haptics are listed there as upcoming modules.
+off; a disabled module is never loaded and its hotkeys are unregistered.
+
+- **Audio Mirror** (module, off by default): plays Windows audio on several output devices at
+  once. Switch devices on in the flyout and set each one's volume. Settings → Audio Mirror picks
+  the source device, the buffer, and which apps are mirrored to each device. An optional hotkey
+  turns all mirroring off and restores it on the next press. On first start the module takes
+  over the standalone Audio Mirror's devices, volumes, app mix and hotkey; quit the standalone
+  app so the sound isn't mirrored twice.
+
+DS5 BT Haptics is listed in Settings → Modules as an upcoming module.
 
 Left- or right-click the tray icon to open a flyout where you can turn features on or off,
 change their hotkeys and manage the shutdown timer.

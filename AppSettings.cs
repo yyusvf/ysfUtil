@@ -53,6 +53,9 @@ internal sealed class AppSettings
     public bool ShutdownTimerEnabled { get; set; } = true;
     public Audio.AudioOutputSettings AudioOutput { get; set; } = new();
     public Audio.AudioVolumeSettings AudioVolume { get; set; } = new();
+
+    /// <summary>Null until the Audio Mirror module first starts and imports the standalone app's settings.</summary>
+    public Modules.AudioMirror.AudioMirrorSettings? AudioMirror { get; set; }
     public Updates.UpdateMode Updates { get; set; } = YsfUtil.Updates.UpdateMode.Notify;
     public DateTime LastUpdateCheckUtc { get; set; }
     public HashSet<string> CollapsedSections { get; set; } = new(StringComparer.OrdinalIgnoreCase);
