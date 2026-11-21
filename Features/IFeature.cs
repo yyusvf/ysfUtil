@@ -32,6 +32,7 @@ internal static class FeatureCatalog
     [
         new TaskbarToggleFeature(),
         new DesktopIconsToggleFeature(),
+        new DisplayModeToggleFeature(),
         new AudioOutputSwitchFeature(audio),
     ];
 }

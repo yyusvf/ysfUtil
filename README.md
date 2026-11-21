@@ -22,6 +22,8 @@ are shared, so you can move from portable to Setup without reconfiguring the app
 
 - **Toggle taskbar** (`Ctrl + Alt + D`): switches between auto-hide and always shown.
 - **Toggle desktop icons** (`Ctrl + Alt + T`): hides or shows all desktop icons.
+- **Toggle display** (`Ctrl + Alt + P`): switches between "PC screen only" and "Second screen
+  only", like the Win + P panel. From Extend or Duplicate, the first press goes to PC screen only.
 - **Audio output** (`Ctrl + Alt + A`): cycles through selected playback devices. Pick an
   output directly in the flyout, or choose the devices to cycle through in Settings.
   Communication audio and the short switch banner can be enabled independently.
@@ -68,7 +70,7 @@ off; a disabled module is never loaded and its hotkeys are unregistered.
 Left- or right-click the tray icon to open a flyout where you can turn features on or off,
 change their hotkeys and manage the shutdown timer.
 The flyout groups cards by category rather than by module: **Audio** (output, volume and
-microphone, Audio Mirror), **Desktop** (taskbar, desktop icons), **System** (shutdown timer) and
+microphone, Audio Mirror), **Desktop** (taskbar, desktop icons, display), **System** (shutdown timer) and
 **Controller** (DS5). A heading hides when nothing below it is enabled. Settings starts with
 Modules and the Tools switches, followed by the same categories and the app's own settings.
 Enable or disable features in Settings. Disabled features are hidden and their hotkeys are
