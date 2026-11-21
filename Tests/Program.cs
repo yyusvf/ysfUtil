@@ -86,6 +86,7 @@ await AudioOutputChecks.Run();
 AudioVolumeChecks.Run();
 await UpdateChecks.Run();
 PluginChecks.Run();
+NightLightChecks.Run();
 
 sealed class TestClock : TimeProvider
 {

@@ -7,6 +7,7 @@ internal static class FeatureCatalog
         new TaskbarToggleFeature(),
         new DesktopIconsToggleFeature(),
         new DisplayModeToggleFeature(),
+        new NightLightFixFeature(),
         new AudioOutputSwitchFeature(audio),
     ];
 }

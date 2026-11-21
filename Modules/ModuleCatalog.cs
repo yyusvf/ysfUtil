@@ -6,7 +6,7 @@ internal static class ModuleCatalog
     public static IReadOnlyList<ModuleInfo> All { get; } =
     [
         new("tools", "Tools",
-            "Taskbar and desktop icon toggles, audio output switching, volume controls and the shutdown timer.",
+            "Taskbar, desktop icon and display toggles, a night light fix, audio output switching, volume controls and the shutdown timer.",
             "\uE90F", context => new Tools.ToolsModule(context), EnabledByDefault: true),
     ];
 }

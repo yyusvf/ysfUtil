@@ -24,6 +24,8 @@ are shared, so you can move from portable to Setup without reconfiguring the app
 - **Toggle desktop icons** (`Ctrl + Alt + T`): hides or shows all desktop icons.
 - **Toggle display** (`Ctrl + Alt + P`): switches between "PC screen only" and "Second screen
   only", like the Win + P panel. From Extend or Duplicate, the first press goes to PC screen only.
+- **Fix night light** (no hotkey by default): makes Windows apply night light again when it stays
+  tinted after switching it off, or shows no tint while it is on. Switch and strength stay as they were.
 - **Audio output** (`Ctrl + Alt + A`): cycles through selected playback devices. Pick an
   output directly in the flyout, or choose the devices to cycle through in Settings.
   Communication audio and the short switch banner can be enabled independently.
@@ -98,7 +100,7 @@ including the release workflow.
 Left- or right-click the tray icon to open a flyout where you can turn features on or off,
 change their hotkeys and manage the shutdown timer.
 The flyout groups cards by category rather than by module: **Audio** (output, volume and
-microphone, Audio Mirror), **Desktop** (taskbar, desktop icons, display), **System** (shutdown timer) and
+microphone, Audio Mirror), **Desktop** (taskbar, desktop icons, display, night light), **System** (shutdown timer) and
 **Controller** (DS5). A heading hides when nothing below it is enabled. Settings starts with
 Modules and the Tools switches, followed by the same categories and the app's own settings.
 Enable or disable features in Settings. Disabled features are hidden and their hotkeys are

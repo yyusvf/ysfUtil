@@ -15,6 +15,7 @@
     <Compile Include="../Audio/AudioVolumeController.cs" Link="AudioVolumeController.cs" />
     <Compile Include="../Plugins/PluginStore.cs" Link="PluginStore.cs" />
     <Compile Include="../Plugins/PluginFeed.cs" Link="PluginFeed.cs" />
+    <Compile Include="../Features/NightLightData.cs" Link="NightLightData.cs" />
     <ProjectReference Include="../Sdk/YsfUtil.Sdk.csproj" />
   </ItemGroup>
 </Project>
