@@ -60,8 +60,12 @@ internal sealed class UpdateViewModel : ViewModelBase, IDisposable
         await CheckAsync(manual: false);
     }
 
+    /// <summary>The user clicked Check for updates: plugins are checked too.</summary>
+    public event Action? ManualCheck;
+
     private async Task CheckAsync(bool manual)
     {
+        if (manual) ManualCheck?.Invoke();
         if (IsBusy || lifetime.IsCancellationRequested || (!manual && !UpdateChecker.ShouldCheck(settings.Updates, settings.LastUpdateCheckUtc, DateTime.UtcNow))) return;
         IsBusy = true;
         if (manual) Status = "Checking GitHub…";

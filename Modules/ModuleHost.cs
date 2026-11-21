@@ -9,18 +9,30 @@ internal sealed class ModuleSettings
 }
 
 /// <summary>
+/// A row in Settings → Modules: a built-in module or a plugin. <paramref name="Create"/> is null
+/// while a plugin isn't installed.
+/// </summary>
+internal sealed record ModuleInfo(
+    string Id,
+    string Name,
+    string Description,
+    string Glyph,
+    Func<ModuleContext, IModule>? Create,
+    bool EnabledByDefault = false);
+
+/// <summary>
 /// Creates the enabled modules and tears them down again when they are switched off. Modules are
-/// started in catalog order, which is also the order of their cards in the flyout.
+/// started in catalog order, which is also the order of their cards within a category.
 /// </summary>
 internal sealed class ModuleHost : IDisposable
 {
     private readonly ModuleContext context;
     private readonly Dictionary<string, IModule> running = new(StringComparer.OrdinalIgnoreCase);
 
-    public ModuleHost(ModuleContext context)
+    public ModuleHost(ModuleContext context, IEnumerable<ModuleInfo> modules)
     {
         this.context = context;
-        Entries = ModuleCatalog.All.Select(info => new ModuleViewModel(info, context.Settings.For(info), this)).ToList();
+        Entries = modules.Select(info => new ModuleViewModel(info, context.Settings.For(info), this)).ToList();
     }
 
     /// <summary>A module started or stopped.</summary>
@@ -41,6 +53,8 @@ internal sealed class ModuleHost : IDisposable
     /// <summary>The running module with this id, or null.</summary>
     public IModule? Find(string id) => running.GetValueOrDefault(id);
 
+    public ModuleViewModel? Entry(string id) => Entries.FirstOrDefault(e => e.Info.Id == id);
+
     public IEnumerable<FeatureViewModel> Features => Running.SelectMany(m => m.Features);
 
     public bool HasVisibleContent => Running.Any(m => m.HasVisibleContent);
@@ -51,30 +65,39 @@ internal sealed class ModuleHost : IDisposable
     {
         foreach (ModuleViewModel entry in Entries.Where(e => e.IsEnabled))
         {
-            Start(entry.Info, raise: false);
+            Start(entry, raise: false);
         }
         Changed?.Invoke();
     }
 
+    /// <summary>A plugin was installed (factory) or removed (null). Starts or stops it as enabled.</summary>
+    internal void SetFactory(string id, Func<ModuleContext, IModule>? create)
+    {
+        if (Entry(id) is not { } entry) return;
+        Stop(id);
+        entry.Create = create;
+        if (entry.IsEnabled) Start(entry, raise: true);
+    }
+
     internal void Apply(ModuleViewModel entry)
     {
-        if (entry.IsEnabled) Start(entry.Info, raise: true);
+        if (entry.IsEnabled) Start(entry, raise: true);
         else Stop(entry.Info.Id);
         context.Settings.Save();
     }
 
-    private void Start(ModuleInfo info, bool raise)
+    private void Start(ModuleViewModel entry, bool raise)
     {
-        if (info.Create == null || running.ContainsKey(info.Id)) return;
+        if (entry.Create == null || running.ContainsKey(entry.Info.Id)) return;
         try
         {
-            IModule module = info.Create(context);
+            IModule module = entry.Create(context);
             module.ContentChanged += OnContentChanged;
-            running[info.Id] = module;
+            running[entry.Info.Id] = module;
         }
         catch (Exception ex)
         {
-            Failed?.Invoke(info.Name, ex.Message);
+            Failed?.Invoke(entry.Info.Name, ex.Message);
             return;
         }
         if (raise) Changed?.Invoke();
@@ -102,10 +125,12 @@ internal sealed class ModuleViewModel : ViewModelBase
 {
     private readonly ModuleSettings settings;
     private readonly ModuleHost host;
+    private Func<ModuleContext, IModule>? create;
 
     public ModuleViewModel(ModuleInfo info, ModuleSettings settings, ModuleHost host)
     {
         Info = info;
+        create = info.Create;
         this.settings = settings;
         this.host = host;
     }
@@ -113,15 +138,38 @@ internal sealed class ModuleViewModel : ViewModelBase
     public ModuleInfo Info { get; }
     public string Name => Info.Name;
     public string Glyph => Info.Glyph;
-    public bool IsAvailable => Info.IsAvailable;
-    public string Description => Info.IsAvailable ? Info.Description : "Coming soon. " + Info.Description;
+    public string Description => Info.Description;
+
+    /// <summary>Set for plugins: install state, version and actions.</summary>
+    public Plugins.PluginViewModel? Plugin { get; set; }
+
+    internal Func<ModuleContext, IModule>? Create
+    {
+        get => create;
+        set
+        {
+            create = value;
+            Raise(nameof(IsAvailable));
+            Raise(nameof(IsEnabled));
+        }
+    }
+
+    /// <summary>Built in, or a plugin that is installed.</summary>
+    public bool IsAvailable => create != null;
+
+    /// <summary>What the user chose, whether or not the plugin is installed yet.</summary>
+    public bool WantsEnabled
+    {
+        get => settings.Enabled;
+        set => settings.Enabled = value;
+    }
 
     public bool IsEnabled
     {
-        get => settings.Enabled && Info.IsAvailable;
+        get => settings.Enabled && IsAvailable;
         set
         {
-            if (!Info.IsAvailable || settings.Enabled == value) return;
+            if (!IsAvailable || settings.Enabled == value) return;
             settings.Enabled = value;
             Raise();
             host.Apply(this);

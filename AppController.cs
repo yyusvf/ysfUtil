@@ -1,6 +1,7 @@
 using System.Windows;
 using YsfUtil.Hotkeys;
 using YsfUtil.Modules;
+using YsfUtil.Plugins;
 using YsfUtil.Ui;
 using YsfUtil.Ui.Flyout;
 using YsfUtil.Ui.ViewModels;
@@ -26,11 +27,12 @@ internal sealed class AppController : IDisposable
     private AudioSwitchBanner? audioBanner;
     private bool disposed;
     private readonly UpdateViewModel updater;
+    private readonly PluginManager plugins;
 
     public AppController(AppSettings settings, bool startQuietly, bool updateFailed = false, bool showAfterUpdate = false)
     {
         this.settings = settings;
-        SectionState.Configure(settings);
+        SectionState.Configure(settings.CollapsedSections, settings.Save);
         tray = new TrayController();
 
         modules = new ModuleHost(new ModuleContext
@@ -41,7 +43,7 @@ internal sealed class AppController : IDisposable
             ShowHint = tray.ShowHint,
             ShowSettings = then => Flyout().ShowSettings(then),
             PickFile = dialog => Flyout().PickFile(dialog),
-        });
+        }, ModuleCatalog.All.Concat(PluginManager.Modules(PluginStore.Default)));
         modules.Failed += (name, message) => tray.ShowHint(name, message, ToolTipIcon.Error);
         modules.Changed += WireFeatures;
         modules.StartEnabled();
@@ -51,6 +53,9 @@ internal sealed class AppController : IDisposable
         updater = new UpdateViewModel(settings, () => modules.UpdateBlocker,
             () => flyout?.IsVisible != true, Exit);
         settingsModel.Updater = updater;
+        plugins = new PluginManager(modules, PluginStore.Default, settings, tray.ShowHint, () => modules.UpdateBlocker, Exit);
+        settingsModel.Plugins = plugins;
+        updater.ManualCheck += () => _ = plugins.CheckAsync(manual: true);
 
         tray.FlyoutToggleRequested += anchor => Flyout().Toggle(anchor);
         tray.FlyoutRequested += anchor => Flyout().ShowFlyout(anchor);
@@ -77,6 +82,7 @@ internal sealed class AppController : IDisposable
         // Start after Application.Run installs WPF's synchronization context, so update
         // continuations (including an automatic restart) stay on the owning UI thread.
         Application.Current.Dispatcher.BeginInvoke(new Action(async () => await updater.StartAsync(updateFailed)));
+        Application.Current.Dispatcher.BeginInvoke(new Action(async () => await plugins.StartAsync()));
         if (showAfterUpdate)
             Application.Current.Dispatcher.BeginInvoke(() => Flyout().ShowFlyout(TrayAnchor.Resolve(tray.GetIconBounds()), activate: true));
 
@@ -181,7 +187,7 @@ internal sealed class AppController : IDisposable
         catch (Exception ex)
         {
             // Audio errors already appear in the passive overlay and inline in the flyout.
-            if (!feature.IsAudioOutput) tray.ShowHint(feature.Name, ex.Message, ToolTipIcon.Error);
+            if (feature.Feature is not Features.AudioOutputSwitchFeature) tray.ShowHint(feature.Name, ex.Message, ToolTipIcon.Error);
         }
         feature.Refresh();
     }
@@ -196,6 +202,7 @@ internal sealed class AppController : IDisposable
     {
         disposed = true;
         updater.Dispose();
+        plugins.Dispose();
         modules.Dispose();
         audioBanner?.Close();
         hotkeys.Dispose();

@@ -1,10 +1,11 @@
 <UserControl x:Class="YsfUtil.Ui.Views.AudioOutputSettingsCard"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sdk="clr-namespace:YsfUtil.Ui.Views;assembly=YsfUtil.Sdk"
              xmlns:views="clr-namespace:YsfUtil.Ui.Views">
     <UserControl.Resources><BooleanToVisibilityConverter x:Key="VisibleWhen" /></UserControl.Resources>
     <Border Style="{StaticResource SettingsCard}" Margin="0,8,0,0">
-        <Expander x:Name="Options" Style="{StaticResource FeatureExpander}" views:SectionState.Key="audio-settings"
+        <Expander x:Name="Options" Style="{StaticResource FeatureExpander}" sdk:SectionState.Key="audio-settings"
                   AutomationProperties.Name="Audio output settings">
             <Expander.Header>
             <Grid>

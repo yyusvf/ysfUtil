@@ -58,7 +58,7 @@ internal static class UpdateChecker
         return best;
     }
 
-    private static HttpClient Client(TimeSpan timeout)
+    internal static HttpClient Client(TimeSpan timeout)
     {
         var client = new HttpClient { Timeout = timeout };
         client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("ysfUtil", CurrentVersion.ToString(3)));
@@ -81,31 +81,36 @@ internal static class UpdateChecker
         string path = Path.Combine(folder, "update.exe");
         try
         {
-            using var client = Client(TimeSpan.FromMinutes(10));
-            await using (var source = await client.GetStreamAsync(update.DownloadUrl, token).ConfigureAwait(false))
-            await using (var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            {
-                byte[] buffer = new byte[81920];
-                long total = 0;
-                int count;
-                while ((count = await source.ReadAsync(buffer, token).ConfigureAwait(false)) != 0)
-                {
-                    total += count;
-                    if (total > update.Size) throw new InvalidDataException("Update size did not match the release.");
-                    await file.WriteAsync(buffer.AsMemory(0, count), token).ConfigureAwait(false);
-                    progress.Report((int)(total * 100 / update.Size));
-                }
-            }
+            await DownloadFileAsync(update.DownloadUrl, path, update.Size, progress, token).ConfigureAwait(false);
             await VerifyAsync(path, update.Size, update.Sha256, token).ConfigureAwait(false);
             return path;
         }
         catch { File.Delete(path); throw; }
     }
 
-    internal static async Task VerifyAsync(string path, long size, string hash, CancellationToken token = default)
+    /// <summary>Downloads to <paramref name="path"/>, never more than <paramref name="size"/> bytes.</summary>
+    internal static async Task DownloadFileAsync(string url, string path, long size, IProgress<int>? progress, CancellationToken token)
+    {
+        using var client = Client(TimeSpan.FromMinutes(10));
+        await using var source = await client.GetStreamAsync(url, token).ConfigureAwait(false);
+        await using var file = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+        byte[] buffer = new byte[81920];
+        long total = 0;
+        int count;
+        while ((count = await source.ReadAsync(buffer, token).ConfigureAwait(false)) != 0)
+        {
+            total += count;
+            if (total > size) throw new InvalidDataException("Download size did not match the release.");
+            await file.WriteAsync(buffer.AsMemory(0, count), token).ConfigureAwait(false);
+            progress?.Report((int)(total * 100 / size));
+        }
+    }
+
+    /// <summary>Size, file signature (MZ for programs, PK for zips) and SHA-256.</summary>
+    internal static async Task VerifyAsync(string path, long size, string hash, CancellationToken token = default, string magic = "MZ")
     {
         await using var file = File.OpenRead(path);
-        if (file.Length != size || file.ReadByte() != 'M' || file.ReadByte() != 'Z')
+        if (file.Length != size || file.ReadByte() != magic[0] || file.ReadByte() != magic[1])
             throw new InvalidDataException("Downloaded update is incomplete or invalid.");
         file.Position = 0;
         string actual = Convert.ToHexString(await SHA256.HashDataAsync(file, token).ConfigureAwait(false));

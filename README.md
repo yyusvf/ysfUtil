@@ -46,26 +46,54 @@ are shared, so you can move from portable to Setup without reconfiguring the app
   Native volume-change notifications restore the level promptly, with a 250 ms fallback check
   while locked. ysfUtil must remain running. Disabling Volume controls stops the lock.
 
-All of the above make up the **Tools** module. Settings → Modules switches whole modules on or
-off; a disabled module is never loaded and its hotkeys are unregistered.
+All of the above make up the built-in **Tools** module.
 
-- **Audio Mirror** (module, off by default): plays Windows audio on several output devices at
-  once. Switch devices on in the flyout and set each one's volume. Settings → Audio Mirror picks
-  the source device, the buffer, and which apps are mirrored to each device. An optional hotkey
-  turns all mirroring off and restores it on the next press. On first start the module takes
-  over the standalone Audio Mirror's devices, volumes, app mix and hotkey; quit the standalone
-  app so the sound isn't mirrored twice.
+### Plugins
 
-- **DS5 BT Haptics** (module, off by default): DualSense HD haptics, adaptive triggers and light
-  bar over Bluetooth, by presenting a virtual wired DualSense via usbip-win2. The flyout card
-  walks through the driver setup one step at a time (usbip-win2, HidHide, hiding the controller),
-  shows controller, virtual controller and haptics status, and has a test button. The bridge
-  runs in its own ysfUtil process, so a problem there never takes the tray down; it restarts on
-  its own and turns off after repeated failures. It pauses while a listed game with its own
-  Bluetooth haptics runs. Settings → DS5 BT Haptics holds strength, latency, the games list, the
-  log, and **Make controller visible to games** to undo the HidHide setup. On first start the
-  module takes over the standalone app's settings; quit the standalone app first, and set up
-  HidHide once more, since it now has to allow ysfUtil.
+Settings → Modules works like a small plugin browser: every module has a switch, and plugins
+that aren't installed yet have an **Install** button. A disabled module is never loaded and its
+hotkeys are unregistered. Plugins live in their apps' own repositories and come from their
+GitHub releases (`<id>.ysfplugin.zip`, checked against GitHub's SHA-256 like ysfUtil's own
+updates), so releasing the app also updates the plugin. Plugin updates follow Settings →
+Updates: offered with an **Update** button, installed automatically, or never checked. A new
+version of a plugin that is already loaded takes effect after **Restart**.
+
+- **Audio Mirror** ([yyusvf/audio-mirror](https://github.com/yyusvf/audio-mirror)): plays
+  Windows audio on several output devices at once. Switch devices on in the flyout and set each
+  one's volume. Its settings pick the source device, the buffer, and which apps are mirrored to
+  each device. An optional hotkey turns all mirroring off and restores it on the next press. On
+  first start it takes over the standalone Audio Mirror's devices, volumes, app mix and hotkey;
+  quit the standalone app so the sound isn't mirrored twice.
+- **DS5 BT Haptics** ([yyusvf/ds5-bt-haptics](https://github.com/yyusvf/ds5-bt-haptics)):
+  DualSense HD haptics, adaptive triggers and light bar over Bluetooth, by presenting a virtual
+  wired DualSense via usbip-win2. The flyout card walks through the driver setup one step at a
+  time, shows controller and haptics status, and has a test button. The bridge runs in its own
+  ysfUtil process, so a problem there never takes the tray down. Its settings hold strength,
+  latency, the games list, the log, and **Make controller visible to games** to undo the HidHide
+  setup.
+
+Audio Mirror and DS5 BT Haptics were built into ysfUtil 0.3. If one was switched on, ysfUtil
+installs its plugin on the next start and keeps its settings.
+
+Plugins are stored in `%LOCALAPPDATA%\ysfUtil\plugins\<id>\<version>`, their settings in
+`%APPDATA%\ysfUtil\plugins\<id>.json`. Each loads into its own assembly context; libraries
+ysfUtil already ships (NAudio) are shared. A plugin's own process (`ysfUtil.exe
+--plugin-process <id> <version> ...`) runs its `IPluginProcess`.
+
+**Writing a plugin:** reference `Sdk/YsfUtil.Sdk.csproj` with `Private="false"`, implement
+`IModule` (constructor taking `IModuleContext`), file cards under a `ModuleCategory`, and ship a
+`plugin.json` next to the assembly:
+
+```json
+{ "id": "my-plugin", "name": "My Plugin", "description": "…", "glyph": "\uE700",
+  "version": "1.0.0", "apiVersion": 1, "assembly": "My.Plugin.dll", "module": "My.Plugin.Module" }
+```
+
+Cards use ysfUtil's styles by key (`SettingsCard`, `FeatureExpander`, `BodyText`, `SecondaryText`,
+`StandardButton`, `GlyphButton`, `ToggleSwitch`, `VolumeSlider`, …) and `HotkeyBox`/`SectionState`
+from the SDK. Try a local build with `ysfUtil.exe --install-plugin <zip>`; set `YSFUTIL_PLUGINS`
+to a folder to keep test installs apart. The app repositories above show the full setup,
+including the release workflow.
 
 Left- or right-click the tray icon to open a flyout where you can turn features on or off,
 change their hotkeys and manage the shutdown timer.

@@ -19,15 +19,6 @@ internal enum NotificationPosition
     TopLeft,
 }
 
-/// <summary>Settings of a single feature.</summary>
-internal sealed class FeatureSettings
-{
-    public bool Enabled { get; set; } = true;
-
-    /// <summary>Stored as text like "Ctrl+Alt+T" so the file stays readable. Empty means no hotkey.</summary>
-    public string? Hotkey { get; set; }
-}
-
 /// <summary>
 /// Everything ysfUtil remembers, in %APPDATA%\ysfUtil\settings.json. Saved immediately on every
 /// change - there is no save button.
@@ -54,13 +45,9 @@ internal sealed class AppSettings
     public Audio.AudioOutputSettings AudioOutput { get; set; } = new();
     public Audio.AudioVolumeSettings AudioVolume { get; set; } = new();
 
-    /// <summary>Null until the Audio Mirror module first starts and imports the standalone app's settings.</summary>
-    public Modules.AudioMirror.AudioMirrorSettings? AudioMirror { get; set; }
-
-    /// <summary>Null until the DS5 module first starts and imports the standalone app's settings.</summary>
-    public Modules.DS5.Ds5Settings? Ds5 { get; set; }
     public Updates.UpdateMode Updates { get; set; } = YsfUtil.Updates.UpdateMode.Notify;
     public DateTime LastUpdateCheckUtc { get; set; }
+    public DateTime LastPluginCheckUtc { get; set; }
     public HashSet<string> CollapsedSections { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Keyed by feature id, see <see cref="Features.IFeature.Id"/>.</summary>
@@ -68,6 +55,13 @@ internal sealed class AppSettings
 
     /// <summary>Keyed by module id, see <see cref="Modules.ModuleCatalog"/>.</summary>
     public Dictionary<string, Modules.ModuleSettings> Modules { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Entries this version doesn't know, kept as they are. Settings of modules that became
+    /// plugins (audioMirror, ds5) are read from here until the plugin saves its own file.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? Legacy { get; set; }
 
     /// <summary>No settings file yet, so this is the first run.</summary>
     [JsonIgnore]

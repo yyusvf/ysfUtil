@@ -1,3 +1,4 @@
+using System.IO;
 using YsfUtil.Ui.Shell;
 
 namespace YsfUtil;
@@ -7,26 +8,17 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
-        // The DS5 bridge runs in a child process of ysfUtil, see Modules.DS5.BridgeProcess.
-        if (args.Contains(Modules.DS5.BridgeProcess.Argument))
+        // A plugin's own process (e.g. the DS5 bridge), see IModuleContext.CreateProcess.
+        if (Plugins.PluginProcess.IsRequested(args))
         {
-            Environment.ExitCode = Modules.DS5.BridgeProcess.RunChild(args);
+            Environment.ExitCode = Plugins.PluginProcess.Run(args);
             return;
         }
-        // Elevated helpers started by the DS5 module's driver setup.
-        if (args.Contains(Modules.DS5.Dependencies.HidHideSetupArgument))
+        // ysfUtil.exe --install-plugin <file.ysfplugin.zip>: installs a plugin from disk, e.g. a local build.
+        int installAt = Array.IndexOf(args, "--install-plugin");
+        if (installAt >= 0 && installAt + 1 < args.Length)
         {
-            Environment.ExitCode = Modules.DS5.Dependencies.RunElevatedHidHideSetup();
-            return;
-        }
-        if (args.Contains(Modules.DS5.Dependencies.HidHideAppsArgument))
-        {
-            Environment.ExitCode = Modules.DS5.Dependencies.RunElevatedHidHideApps(args);
-            return;
-        }
-        if (args.Contains(Modules.DS5.Dependencies.HidHideUndoArgument))
-        {
-            Environment.ExitCode = Modules.DS5.Dependencies.RunElevatedHidHideUndo();
+            Environment.ExitCode = InstallPlugin(args[installAt + 1], silent: args.Contains("--silent"));
             return;
         }
         if (Updates.PortableUpdater.IsHelper(args))
@@ -54,6 +46,9 @@ internal static class Program
 #endif
 
         bool quiet = args.Any(a => string.Equals(a, Autostart.QuietArgument, StringComparison.OrdinalIgnoreCase));
+
+        // A restart (after a plugin update) waits until the old instance has gone.
+        Plugins.PluginManager.WaitForPrevious(args);
 
         // Already running? Then that instance opens its flyout and this one exits.
         if (!SingleInstance.TryAcquire())
@@ -86,6 +81,23 @@ internal static class Program
         SingleInstance.Release();
     }
 
+    private static int InstallPlugin(string path, bool silent)
+    {
+        try
+        {
+            Plugins.InstalledPlugin plugin = Plugins.PluginStore.Default.Install(path);
+            if (!silent) System.Windows.MessageBox.Show($"{plugin.Manifest.Name} {plugin.Manifest.Version} is installed. Restart ysfUtil to use it.",
+                "ysfUtil", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            return 0;
+        }
+        catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException)
+        {
+            if (!silent) System.Windows.MessageBox.Show("The plugin could not be installed: " + e.Message,
+                "ysfUtil", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            return 1;
+        }
+    }
+
 #if DEBUG
     private static void Render(string[] args, string path)
     {
@@ -100,10 +112,11 @@ internal static class Program
         }
 
         AppSettings settings = AppSettings.Load();
-        Ui.Views.SectionState.Configure(settings, save: false);
+        Ui.Views.SectionState.Configure(settings.CollapsedSections, null);
         if (args.Any(a => string.Equals(a, "all-modules", StringComparison.OrdinalIgnoreCase)))
         {
-            foreach (var module in Modules.ModuleCatalog.All) settings.For(module).Enabled = true;
+            foreach (var key in settings.Modules.Keys.Concat(Plugins.PluginStore.Default.Installed().Select(p => p.Id)).ToList())
+                settings.Modules[key] = new Modules.ModuleSettings { Enabled = true };
         }
         Ui.Flyout.FlyoutWindow? flyout = null;
         // Preview modules never shut Windows down, enforce a microphone level or save settings.
@@ -116,7 +129,8 @@ internal static class Program
             ShowSettings = then => flyout?.ShowSettings(then),
             PickFile = _ => null,
             IsPreview = true,
-        });
+        }, Modules.ModuleCatalog.All.Concat(Plugins.PluginManager.Modules(Plugins.PluginStore.Default)));
+        modules.Failed += (name, message) => Console.Error.WriteLine($"{name}: {message}");
         modules.StartEnabled();
         var tools = modules.Running.OfType<Modules.Tools.ToolsModule>().FirstOrDefault();
         if (args.Any(a => string.Equals(a, "timer-running", StringComparison.OrdinalIgnoreCase)))
@@ -124,8 +138,10 @@ internal static class Program
             tools?.StartPreviewTimer(30);
         }
 
+        using var previewPlugins = new Plugins.PluginManager(modules, Plugins.PluginStore.Default, settings,
+            (_, _, _) => { }, () => "Preview", () => { });
         using var previewUpdater = new Ui.ViewModels.UpdateViewModel(settings, () => "Preview", () => true, () => { });
-        flyout = new Ui.Flyout.FlyoutWindow(modules, new Ui.ViewModels.SettingsViewModel(settings) { Updater = previewUpdater });
+        flyout = new Ui.Flyout.FlyoutWindow(modules, new Ui.ViewModels.SettingsViewModel(settings) { Updater = previewUpdater, Plugins = previewPlugins });
         if (args.Any(a => string.Equals(a, "settings", StringComparison.OrdinalIgnoreCase)))
         {
             flyout.ShowSettings();

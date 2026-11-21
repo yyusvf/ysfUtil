@@ -1,10 +1,11 @@
 <UserControl x:Class="YsfUtil.Ui.Views.ShutdownTimerCard"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sdk="clr-namespace:YsfUtil.Ui.Views;assembly=YsfUtil.Sdk"
              xmlns:views="clr-namespace:YsfUtil.Ui.Views">
     <Border Style="{StaticResource SettingsCard}" Margin="0,2,0,6">
         <StackPanel>
-            <Expander x:Name="Options" Style="{StaticResource FeatureExpander}" views:SectionState.Key="shutdown"
+            <Expander x:Name="Options" Style="{StaticResource FeatureExpander}" sdk:SectionState.Key="shutdown"
                       AutomationProperties.Name="Shutdown timer options">
             <Expander.Header>
             <StackPanel>

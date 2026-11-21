@@ -68,7 +68,7 @@ internal sealed class ToolsModule : IModule
         shutdownTicker.Tick += (_, _) => shutdownTimer.Tick();
 
         Action save = context.IsPreview ? () => { } : settings.Save;
-        audioModel = new AudioOutputViewModel(audio, features.Single(f => f.IsAudioOutput), save);
+        audioModel = new AudioOutputViewModel(audio, features.Single(f => f.Feature is AudioOutputSwitchFeature), save);
 
         // Preview rendering reads levels but never enforces or saves a microphone setting.
         var volume = new AudioVolumeController(volumeBackend, context.IsPreview
@@ -128,7 +128,7 @@ internal sealed class ToolsModule : IModule
         audioCard.SettingsRequested += ShowAudioSettings;
         shutdownCard = VisibleWhen(new ShutdownTimerCard { DataContext = shutdownModel }, nameof(ShutdownTimerViewModel.IsEnabled));
         audioSettingsCard = new AudioOutputSettingsCard { DataContext = audioModel };
-        var toggles = features.Where(f => !f.IsAudioOutput).ToList();
+        var toggles = features.Where(f => f.Feature is not AudioOutputSwitchFeature).ToList();
         FlyoutCards =
         [
             new(ModuleCategory.Audio, 0, audioCard),

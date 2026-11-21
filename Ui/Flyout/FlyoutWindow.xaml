@@ -1,6 +1,7 @@
 <Window x:Class="YsfUtil.Ui.Flyout.FlyoutWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="clr-namespace:YsfUtil.Ui.Views"
         Title="ysfUtil"
         Width="392"
         MinWidth="392" MaxWidth="392"
@@ -29,6 +30,11 @@
                       GlassFrameThickness="0"
                       UseAeroCaptionButtons="False" />
     </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="VisibleWhenTrue" />
+        <views:CollapsedWhenNull x:Key="CollapsedWhenNull" />
+    </Window.Resources>
 
     <Grid x:Name="Root">
         <Grid Margin="12,8,12,12">
@@ -85,6 +91,9 @@
                         <Binding Path="DataContext.Updater.HasUpdate" ElementName="SettingsView"><Binding.Converter><BooleanToVisibilityConverter /></Binding.Converter></Binding>
                     </Ellipse.Visibility>
                 </Ellipse>
+                <Ellipse Grid.Column="3" Width="6" Height="6" HorizontalAlignment="Right" VerticalAlignment="Top"
+                         Margin="0,3,2,0" Fill="{DynamicResource AccentBrush}" IsHitTestVisible="False"
+                         Visibility="{Binding DataContext.Plugins.HasUpdate, ElementName=SettingsView, Converter={StaticResource VisibleWhenTrue}, FallbackValue=Collapsed}" />
                 <Button x:Name="MinimizeButton"
                         Grid.Column="4"
                         Style="{StaticResource GlyphButton}"
@@ -123,14 +132,27 @@
                 </Grid.RowDefinitions>
                 <ScrollViewer x:Name="SettingsScroll" Grid.Row="0" Style="{StaticResource ThemedScrollViewer}">
                 <StackPanel>
-                <!-- Like Windhawk: every module can be switched on and off; a disabled one is never loaded. -->
+                <!-- Like Windhawk: built-in modules and plugins, each switched on and off here. Plugins
+                     install from their app's GitHub releases; a disabled one is never loaded. -->
                 <Border Style="{StaticResource SettingsCard}">
                     <StackPanel>
-                        <TextBlock Text="Modules" Style="{StaticResource BodyText}" FontWeight="SemiBold" Margin="0,0,0,12" />
+                        <TextBlock Text="Modules" Style="{StaticResource BodyText}" FontWeight="SemiBold" />
+                        <TextBlock Text="Plugins come from their apps' GitHub releases and update with them."
+                                   Style="{StaticResource SecondaryText}" FontSize="12" TextWrapping="Wrap" TextTrimming="None" Margin="0,2,0,12" />
+                        <Border DataContext="{Binding Plugins}" Padding="10" Margin="0,0,0,12"
+                                CornerRadius="{StaticResource RadiusControl}" Background="{DynamicResource AccentSoftBrush}"
+                                Visibility="{Binding RestartRequired, Converter={StaticResource VisibleWhenTrue}, FallbackValue=Collapsed}">
+                            <Grid>
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding RestartText}" Style="{StaticResource BodyText}" TextWrapping="Wrap"
+                                           TextTrimming="None" VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <Button Grid.Column="1" Content="Restart" Style="{StaticResource StandardButton}" Command="{Binding RestartCommand}" />
+                            </Grid>
+                        </Border>
                         <ItemsControl x:Name="ModuleList">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="0,0,0,14" ToolTip="{Binding Description}">
+                                    <Grid Margin="0,0,0,14">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
@@ -142,15 +164,30 @@
                                             <TextBlock x:Name="NameText" Text="{Binding Name}" Style="{StaticResource BodyText}" />
                                             <TextBlock Text="{Binding Description}" Style="{StaticResource SecondaryText}" FontSize="12"
                                                        TextWrapping="Wrap" TextTrimming="None" Margin="0,2,0,0" />
+                                            <TextBlock Text="{Binding Plugin.Detail}" Style="{StaticResource SecondaryText}" FontSize="12"
+                                                       TextWrapping="Wrap" TextTrimming="None" Margin="0,4,0,0"
+                                                       Visibility="{Binding Plugin.Detail, Converter={StaticResource CollapsedWhenNull}, FallbackValue=Collapsed}" />
+                                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0"
+                                                        Visibility="{Binding Plugin, Converter={StaticResource CollapsedWhenNull}}">
+                                                <Button Content="{Binding Plugin.ActionLabel}" Command="{Binding Plugin.ActionCommand}"
+                                                        Style="{StaticResource StandardButton}" Margin="0,0,6,0"
+                                                        Visibility="{Binding Plugin.CanInstall, Converter={StaticResource VisibleWhenTrue}}" />
+                                                <Button Content="Uninstall" Command="{Binding Plugin.UninstallCommand}"
+                                                        Style="{StaticResource StandardButton}" Margin="0,0,6,0"
+                                                        Visibility="{Binding Plugin.CanUninstall, Converter={StaticResource VisibleWhenTrue}}" />
+                                                <Button Content="&#xE8A7;" Command="{Binding Plugin.PageCommand}" Style="{StaticResource GlyphButton}"
+                                                        ToolTip="Open on GitHub" AutomationProperties.Name="Open on GitHub"
+                                                        Visibility="{Binding Plugin.Entry, Converter={StaticResource CollapsedWhenNull}}" />
+                                            </StackPanel>
                                         </StackPanel>
                                         <CheckBox Grid.Column="2" Style="{StaticResource ToggleSwitch}" VerticalAlignment="Top"
-                                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}" IsEnabled="{Binding IsAvailable}"
+                                                  IsChecked="{Binding IsEnabled, Mode=TwoWay}"
+                                                  Visibility="{Binding IsAvailable, Converter={StaticResource VisibleWhenTrue}}"
                                                   AutomationProperties.Name="{Binding Name}" />
                                     </Grid>
                                     <DataTemplate.Triggers>
                                         <DataTrigger Binding="{Binding IsAvailable}" Value="False">
-                                            <Setter TargetName="GlyphText" Property="Foreground" Value="{DynamicResource TextDisabledBrush}" />
-                                            <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
+                                            <Setter TargetName="GlyphText" Property="Foreground" Value="{DynamicResource TextSecondaryBrush}" />
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
                                 </DataTemplate>

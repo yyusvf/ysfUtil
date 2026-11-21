@@ -12,8 +12,6 @@
     <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
 
     <Nullable>enable</Nullable>
-    <!-- The DS5 bridge parses HID and USB/IP packets with pointers. -->
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <AssemblyName>ysfUtil</AssemblyName>
@@ -37,6 +35,7 @@
 
   <ItemGroup>
     <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+    <ProjectReference Include="Sdk/YsfUtil.Sdk.csproj" />
     <None Update="THIRD-PARTY-NOTICES.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
@@ -49,6 +48,9 @@
 
   <ItemGroup>
     <Compile Remove="Tests/**/*.cs" />
+    <Compile Remove="Sdk/**" />
+    <Page Remove="Sdk/**" />
+    <None Remove="Sdk/**" />
     <!-- Same icon as the exe, also as a WPF resource for the flyout header. -->
     <Resource Include="ysfUtil.ico" />
   </ItemGroup>

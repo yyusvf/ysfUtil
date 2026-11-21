@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -13,5 +13,8 @@
     <Compile Include="../Audio/AudioOutputSettings.cs" Link="AudioOutputSettings.cs" />
     <Compile Include="../Audio/AudioOutputSwitcher.cs" Link="AudioOutputSwitcher.cs" />
     <Compile Include="../Audio/AudioVolumeController.cs" Link="AudioVolumeController.cs" />
+    <Compile Include="../Plugins/PluginStore.cs" Link="PluginStore.cs" />
+    <Compile Include="../Plugins/PluginFeed.cs" Link="PluginFeed.cs" />
+    <ProjectReference Include="../Sdk/YsfUtil.Sdk.csproj" />
   </ItemGroup>
 </Project>

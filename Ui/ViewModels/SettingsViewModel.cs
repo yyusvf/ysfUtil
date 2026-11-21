@@ -18,6 +18,9 @@ internal sealed class SettingsViewModel : ViewModelBase
         PreviewNotificationCommand = new RelayCommand(() => PreviewNotificationRequested?.Invoke());
     }
 
+    /// <summary>Plugin installs and updates for Settings → Modules.</summary>
+    public Plugins.PluginManager? Plugins { get; set; }
+
     public bool AutostartEnabled
     {
         get => autostart;

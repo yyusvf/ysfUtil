@@ -1,10 +1,11 @@
 <UserControl x:Class="YsfUtil.Ui.Views.AudioVolumeCard"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:sdk="clr-namespace:YsfUtil.Ui.Views;assembly=YsfUtil.Sdk"
              xmlns:views="clr-namespace:YsfUtil.Ui.Views">
     <UserControl.Resources><BooleanToVisibilityConverter x:Key="VisibleWhen" /></UserControl.Resources>
     <Border Style="{StaticResource SettingsCard}" Margin="0,0,0,6">
-        <Expander Style="{StaticResource FeatureExpander}" views:SectionState.Key="volume"
+        <Expander Style="{StaticResource FeatureExpander}" sdk:SectionState.Key="volume"
                   AutomationProperties.Name="Volume options">
             <Expander.Header>
                 <StackPanel Orientation="Horizontal">

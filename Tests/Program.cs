@@ -85,6 +85,7 @@ Console.WriteLine("PASS: validation, duplicate start, countdown, warning, expiry
 await AudioOutputChecks.Run();
 AudioVolumeChecks.Run();
 await UpdateChecks.Run();
+PluginChecks.Run();
 
 sealed class TestClock : TimeProvider
 {
